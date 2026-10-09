@@ -43,32 +43,3 @@ export async function renderSubscribeButton(container, { uid, onApproved, onCanc
     .render(container);
 }
 
-// Botón alojado (Hosted Button) del Checklist BIM. Usa otro client-id, así que se carga
-// con su propio namespace para no chocar con el SDK de suscripciones.
-let loadingHosted = null;
-
-function loadHosted() {
-  if (window.paypalHosted) return Promise.resolve(window.paypalHosted);
-  if (!loadingHosted) {
-    const c = CONFIG.checklist;
-    loadingHosted = new Promise((resolve, reject) => {
-      const s = document.createElement('script');
-      s.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(c.clientId)}&components=hosted-buttons&disable-funding=venmo&currency=${c.currency}`;
-      s.dataset.namespace = 'paypalHosted';
-      s.onload = () => resolve(window.paypalHosted);
-      s.onerror = () => {
-        loadingHosted = null;
-        reject(new Error('No se pudo cargar PayPal. Revisa tu conexión.'));
-      };
-      document.head.appendChild(s);
-    });
-  }
-  return loadingHosted;
-}
-
-export async function renderChecklistButton(container) {
-  const pp = await loadHosted();
-  if (!container.isConnected) return;
-  container.innerHTML = '';
-  await pp.HostedButtons({ hostedButtonId: CONFIG.checklist.hostedButtonId }).render(`#${container.id}`);
-}

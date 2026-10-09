@@ -1,15 +1,33 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // emailLower vincula los pagos de Wompi: solo puede ser el correo VERIFICADO del propio usuario.
+    function validEmailLower() {
+      return !('emailLower' in request.resource.data)
+        || request.resource.data.emailLower == ''
+        || (request.auth.token.email_verified == true
+            && request.resource.data.emailLower == request.auth.token.email.lower());
+    }
     // Cada usuario lee su documento y solo puede escribir sus datos de perfil y progreso.
     // "premium" y "subscription" solo los escriben las Cloud Functions (Admin SDK).
     match /users/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow create: if request.auth != null && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['name', 'email', 'progress', 'updatedAt']);
+        && request.resource.data.keys().hasOnly(['name', 'email', 'emailLower', 'progress', 'updatedAt'])
+        && validEmailLower();
       allow update: if request.auth != null && request.auth.uid == uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'email', 'progress', 'updatedAt'])
-        && (!('progress' in request.resource.data) || request.resource.data.progress.size() < 200000);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'email', 'emailLower', 'progress', 'updatedAt'])
+        && (!('progress' in request.resource.data) || request.resource.data.progress.size() < 200000)
+        && validEmailLower();
+    }
+    // Proyectos del Checklist BIM: solo con acceso vigente (checklistProUntil lo escribe el Apps Script).
+    match /users/{uid}/checklists/{projectId} {
+      allow read, write: if request.auth != null && request.auth.uid == uid
+        && get(/databases/$(database)/documents/users/$(uid)).data.get('checklistProUntil', timestamp.value(0)) > request.time;
+    }
+    // Compras de Wompi: solo el Apps Script (cuenta de servicio).
+    match /purchases/{id} {
+      allow read, write: if false;
     }
     // Vínculo suscripción → usuario: solo servidor.
     match /subscriptions/{id} {

@@ -14,6 +14,7 @@ export const account = {
   premium: false,
   subscription: null,
   remoteProgress: null,
+  data: {}, // documento users/{uid} completo (p. ej. checklistProUntil)
   error: null
 };
 
@@ -76,7 +77,7 @@ function handleUser(user) {
   if (unsubDoc) unsubDoc();
   unsubDoc = null;
   if (!user) {
-    Object.assign(account, { user: null, premium: false, subscription: null, remoteProgress: null, ready: true });
+    Object.assign(account, { user: null, premium: false, subscription: null, remoteProgress: null, data: {}, ready: true });
     emit();
     return;
   }
@@ -89,11 +90,12 @@ function handleUser(user) {
     provider: user.providerData[0]?.providerId || 'password'
   };
   const ref = fb.F.doc(fb.db, 'users', user.uid);
-  fb.F.setDoc(ref, { email: user.email || '', name: user.displayName || '', updatedAt: fb.F.serverTimestamp() }, { merge: true }).catch(() => {});
+  fb.F.setDoc(ref, { email: user.email || '', emailLower: user.emailVerified ? (user.email || '').toLowerCase() : '', name: user.displayName || '', updatedAt: fb.F.serverTimestamp() }, { merge: true }).catch(() => {});
   unsubDoc = fb.F.onSnapshot(
     ref,
     (snap) => {
       const d = snap.data() || {};
+      account.data = d;
       account.premium = d.premium === true;
       account.subscription = d.subscription || null;
       try {
@@ -151,6 +153,33 @@ export function saveProgress(state) {
   saveTimer = setTimeout(() => {
     fb.F.setDoc(fb.F.doc(fb.db, 'users', uid), { progress: payload, updatedAt: fb.F.serverTimestamp() }, { merge: true }).catch(() => {});
   }, 1500);
+}
+
+// Subcolecciones del usuario: users/{uid}/{name}/{id} (p. ej. proyectos del checklist).
+export async function listUserDocs(name) {
+  const snap = await fb.F.getDocs(fb.F.collection(fb.db, 'users', account.user.uid, name));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+export async function saveUserDoc(name, id, data) {
+  await fb.F.setDoc(fb.F.doc(fb.db, 'users', account.user.uid, name, id), { ...data, updatedAt: fb.F.serverTimestamp() }, { merge: true });
+}
+
+export async function deleteUserDoc(name, id) {
+  await fb.F.deleteDoc(fb.F.doc(fb.db, 'users', account.user.uid, name, id));
+}
+
+export async function getIdToken() {
+  return fb?.auth.currentUser ? fb.auth.currentUser.getIdToken() : null;
+}
+
+// Fecha (ms) hasta la que un campo de acceso con vencimiento sigue activo; 0 si no aplica.
+export function accessUntil(field) {
+  const v = account.data?.[field];
+  if (!v) return 0;
+  if (typeof v.toMillis === 'function') return v.toMillis();
+  const ms = new Date(v).getTime();
+  return Number.isFinite(ms) ? ms : 0;
 }
 
 // Llama a la Cloud Function que verifica la suscripción directamente con PayPal.

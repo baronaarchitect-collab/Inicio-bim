@@ -46,21 +46,30 @@ export const CONFIG = {
     manageUrl: 'https://www.paypal.com/myaccount/autopay/'
   },
 
-  // Producto de pago único: Checklist BIM (botón alojado de PayPal) + playbooks de regalo.
+  // Checklist BIM: app aparte (./checklist/) con cuenta gratis y suscripción por Wompi.
   checklist: {
-    clientId: 'BAAwMWaLtA_WE3Al3WTZhvHGDiP1NuGusXOxcTlSxg5NVg0rIBfGV-HRoOYuCSM7XVRkV3RfmMAxSUT42o',
-    hostedButtonId: 'QUCSGW7YDPB8A',
-    currency: 'USD',
+    appUrl: './checklist/',
     title: 'Checklist BIM de despegue',
-    subtitle: 'Los checklists de modelado, planimetría, cantidades y MEP listos para tu próximo proyecto en Revit.',
+    subtitle: 'Los checklists de modelado, planimetría, cantidades, MEP y coordinación en una app, por proyecto y en español o inglés.',
     includes: [
       '✅ Checklist de modelado arquitectónico',
       '✅ Checklist de planimetría (conceptual y constructiva)',
       '✅ Checklist de cantidades (m², ML, unidad)',
-      '✅ Checklists eléctrico, hidrosanitario y HVAC'
+      '✅ Checklists eléctrico, hidrosanitario y HVAC',
+      '✅ Gate de transición a coordinación'
     ],
     gifts: ['📘 Playbook Inicio BIM (3 mitos)', '📗 Playbook Modelado, Planimetría y Cantidades', '📙 Playbook Consultoría BIM'],
-    delivery: 'Te enviamos el checklist y los 3 playbooks al correo de tu cuenta PayPal.'
+    cta: 'Abrir Checklist BIM'
+  },
+
+  // Suscripción al Checklist BIM con Wompi (link de pago). El Apps Script de wompi/Code.gs
+  // (gratis) recibe el webhook de Wompi y activa checklistProUntil en Firestore para la
+  // cuenta con el mismo correo del pago. Ver docs/CHECKLIST-WOMPI.md.
+  wompi: {
+    paymentLink: 'https://checkout.wompi.co/l/4O0ONc',
+    scriptUrl: '', // URL del Apps Script publicado como aplicación web (termina en /exec)
+    accessDays: 30, // días de acceso por pago (debe coincidir con ACCESS_DAYS del Apps Script)
+    priceLabel: { es: 'Ver valor en Wompi', en: 'See price on Wompi' }
   },
 
   premium: {

@@ -95,3 +95,14 @@ sw.js                 offline, periodic sync, push y clic en notificación
 server/               servidor push opcional (Node + web-push)
 tests/                tests con node:test
 ```
+
+## Producto 1 · Checklist BIM (app aparte)
+
+App en `checklist/` (publicada en `/checklist/`):
+- **Acceso:** cuenta gratis con Google o correo, sin acceso al contenido hasta pagar.
+- **Pago:** suscripción con el link de Wompi. Un Apps Script gratuito (`wompi/Code.gs`) recibe el webhook y activa `checklistProUntil` en Firestore.
+- **Contenido:** 92 ítems en 7 grupos (modelado, planimetría, cantidades, eléctrico, hidrosanitario, HVAC y gate de coordinación).
+- **Uso:** varios proyectos, avance en la nube, impresión/PDF y selector **Español/English**.
+- **Venta adicional:** oferta de consultoría 1:1 dentro del checklist.
+
+Puesta en marcha: [docs/CHECKLIST-WOMPI.md](docs/CHECKLIST-WOMPI.md).

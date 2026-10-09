@@ -1352,6 +1352,7 @@ label {
   padding-left: 18px;
   font-weight: 700;
 }
-.paypal-box.hosted {
-  min-height: 120px;
+.checklist-offer a.btn {
+  display: block;
+  text-decoration: none;
 }

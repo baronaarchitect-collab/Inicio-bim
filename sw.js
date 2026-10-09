@@ -1,5 +1,5 @@
 // Service worker de Despegue BIM: offline + recordatorios.
-const VERSION = 'despegue-v4';
+const VERSION = 'despegue-v5';
 const SHELL = [
   './',
   './index.html',

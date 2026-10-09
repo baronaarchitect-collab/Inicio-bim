@@ -674,7 +674,7 @@ function videoRow(attr, v, subtitle) {
   return `<li><button class="vrow" data-action="watch" ${attr}><span class="vthumb ${v.type}" ${thumb}>${v.type === 'playlist' ? '☰▶' : '▶'}</span><span><b>${esc(v.title)}</b><small>${esc(subtitle)}</small></span></button></li>`;
 }
 
-// Oferta del Checklist BIM (pago único con botón alojado de PayPal + playbooks de regalo).
+// Oferta del Checklist BIM (app aparte con suscripción por Wompi + playbooks de regalo).
 function checklistOffer(kicker = 'Producto descargable') {
   const c = CONFIG.checklist;
   return `
@@ -683,9 +683,8 @@ function checklistOffer(kicker = 'Producto descargable') {
       <h3>${esc(c.title)}</h3>
       <p class="muted">${esc(c.subtitle)}</p>
       <ul class="mini-value">${c.includes.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>
-      <div class="gift"><b>🎁 Gratis con tu compra</b><ul>${c.gifts.map((g) => `<li>${esc(g)}</li>`).join('')}</ul></div>
-      <div id="paypal-container-${c.hostedButtonId}" class="paypal-box hosted"><p class="muted center">Cargando PayPal…</p></div>
-      <p class="muted small">${esc(c.delivery)}</p>
+      <div class="gift"><b>🎁 Gratis con tu suscripción</b><ul>${c.gifts.map((g) => `<li>${esc(g)}</li>`).join('')}</ul></div>
+      <a class="btn gold big" href="${c.appUrl}">${esc(c.cta)}</a>
     </section>`;
 }
 
@@ -1192,12 +1191,6 @@ function vibrate(p) {
 }
 
 function afterRender() {
-  const hosted = document.getElementById(`paypal-container-${CONFIG.checklist.hostedButtonId}`);
-  if (hosted) {
-    P.renderChecklistButton(hosted).catch((e) => {
-      hosted.innerHTML = `<p class="muted">${esc(e.message)}</p>`;
-    });
-  }
   const box = document.getElementById(`paypal-button-container-${CONFIG.paypal.planId}`);
   if (box && ui.screen === 'premium' && account.user && !account.premium && !ui.activating) {
     P.renderSubscribeButton(box, {
