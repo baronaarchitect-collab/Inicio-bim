@@ -1,6 +1,6 @@
-# Checklist BIM: cuenta gratis + suscripción con Wompi (todo gratis)
+# Plataforma BIM: cuenta gratis + acceso PRO con Wompi (todo gratis)
 
-**App:** https://baronaarchitect-collab.github.io/Inicio-bim/checklist/
+**App:** https://baronaarchitect-collab.github.io/Inicio-bim/plataforma/
 
 Flujo del producto:
 
@@ -60,3 +60,11 @@ Haz commit de `js/config.js` con `firebase` y `wompi.scriptUrl` y súbelo. GitHu
 - **Renovación manual:** Wompi con link de pago no cobra automáticamente cada mes. Cada pago suma `ACCESS_DAYS` desde el vencimiento vigente, y la app avisa 7 días antes con un botón "Renovar".
 - **Seguridad:** `checklistProUntil` y `purchases/` solo los escribe el Apps Script. Las reglas impiden que el navegador los toque, y `emailLower`, que vincula los pagos, solo puede ser el correo verificado del propio usuario.
 - **Consultoría 1:1:** el botón lleva a la página de Consultoría del curso (`../#consult`), con su flujo de pago y agenda.
+
+## Links PRO del marketplace y del tablero de coordinación
+Las URLs de los playbooks y del dashboard de Overskill **no están en el código público**:
+1. En el Apps Script, crea la propiedad `PRO_LINKS` con un JSON `{ "id": "url", … }`. Los ids están en `plataforma/catalog.js`.
+2. Ejecuta `seedProLinks()` desde el editor (botón ▶). Eso copia los links a Firestore `proLinks/{id}`.
+3. Las reglas solo dejan leer esos documentos a usuarios con `checklistProUntil` vigente.
+
+Los archivos de Drive deben estar compartidos como "Cualquier persona con el enlace". Si no, el miembro PRO verá "Solicitar acceso".

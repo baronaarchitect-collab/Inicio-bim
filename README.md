@@ -96,13 +96,15 @@ server/               servidor push opcional (Node + web-push)
 tests/                tests con node:test
 ```
 
-## Producto 1 · Checklist BIM (app aparte)
+## Ecosistema Life City
 
-App en `checklist/` (publicada en `/checklist/`):
-- **Acceso:** cuenta gratis con Google o correo, sin acceso al contenido hasta pagar.
-- **Pago:** suscripción con el link de Wompi. Un Apps Script gratuito (`wompi/Code.gs`) recibe el webhook y activa `checklistProUntil` en Firestore.
-- **Contenido:** 92 ítems en 7 grupos (modelado, planimetría, cantidades, eléctrico, hidrosanitario, HVAC y gate de coordinación).
-- **Uso:** varios proyectos, avance en la nube, impresión/PDF y selector **Español/English**.
-- **Venta adicional:** oferta de consultoría 1:1 dentro del checklist.
+| App | Ruta | Para qué |
+|-----|------|----------|
+| **Despegue BIM** (educación y frecuencia) | `/` | Lecciones diarias, **planes BIM** por especialidad, videos, rachas y recordatorios |
+| **Plataforma BIM** (PRO) | `/plataforma/` | Checklist por gates, marketplace de playbooks, herramientas (tablero de coordinación) y consultoría 1:1 para miembros PRO |
+| **Oferta de coordinación del Visor BIM** (profesional) | `/visor/coordinacion.js` | Módulo para el Visor BIM: ofrece detección + resolución de interferencias y envía el lead a n8n |
 
-Puesta en marcha: [docs/CHECKLIST-WOMPI.md](docs/CHECKLIST-WOMPI.md).
+Guías de configuración:
+- [docs/CHECKLIST-WOMPI.md](docs/CHECKLIST-WOMPI.md): cuentas Firebase, acceso PRO con Wompi y links protegidos.
+- [docs/VISOR-NOTIFICACIONES.md](docs/VISOR-NOTIFICACIONES.md): integración con el visor y n8n.
+- [docs/SUSCRIPCIONES.md](docs/SUSCRIPCIONES.md): suscripción del curso con PayPal (opcional).

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Visor BIM · Demo de coordinación</title>
+    <link rel="icon" href="../icons/icon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --bg: #f4f4f2;
+        --ink: #1f2428;
+        --line: #dcdcd8;
+        --dark: #22272b;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #15181a;
+          --ink: #eceeef;
+          --line: #33393d;
+          --dark: #0d0f10;
+        }
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 15px/1.45 'Source Sans 3', system-ui, sans-serif;
+      }
+      header {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--line);
+        font: 800 1.2rem 'Barlow Condensed', sans-serif;
+        letter-spacing: 0.03em;
+      }
+      main {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 16px;
+        display: grid;
+        gap: 14px;
+      }
+      .viewer {
+        height: 46vh;
+        min-height: 260px;
+        border-radius: 12px;
+        background: radial-gradient(circle at 30% 30%, #3a4650, #1b2025);
+        display: grid;
+        place-items: center;
+        color: #cfd6db;
+        font: 700 1.1rem 'Barlow Condensed', sans-serif;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      button {
+        font: 700 14px system-ui;
+        padding: 10px 14px;
+        border-radius: 6px;
+        border: 1px solid var(--line);
+        background: transparent;
+        color: var(--ink);
+        cursor: pointer;
+      }
+      button.dark {
+        background: var(--dark);
+        border-color: var(--dark);
+        color: #fff;
+      }
+      pre {
+        background: var(--dark);
+        color: #e6e6e6;
+        padding: 12px;
+        border-radius: 8px;
+        overflow: auto;
+        font-size: 12px;
+        max-height: 200px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>VISOR BIM · DEMO DE LA OFERTA DE COORDINACIÓN</header>
+    <main>
+      <div class="viewer">Modelo federado (simulado)</div>
+      <div class="row">
+        <button class="dark" id="load">Cargar modelo ARQ + EST + HID</button>
+        <button id="clash">Detectar 37 interferencias</button>
+        <button id="manual">Abrir oferta manualmente</button>
+        <button id="reset">Reiniciar frecuencia</button>
+      </div>
+      <p>Eventos emitidos (lo que recibiría tu webhook de n8n):</p>
+      <pre id="log"></pre>
+    </main>
+    <script src="./coordinacion.js" data-delay-minutes="4" data-cooldown-days="3"></script>
+    <script>
+      const log = document.getElementById('log');
+      window.addEventListener('lifecity:coordination', (e) => {
+        log.textContent = JSON.stringify(e.detail, null, 2) + '\n\n' + log.textContent;
+      });
+      document.getElementById('load').onclick = () => LifeCityCoord.modelLoaded({ project: 'Anturios Torre D', disciplines: ['ARQ', 'EST', 'HID'], elements: 18450 });
+      document.getElementById('clash').onclick = () => LifeCityCoord.clashesFound(37);
+      document.getElementById('manual').onclick = () => LifeCityCoord.show();
+      document.getElementById('reset').onclick = () => {
+        Object.keys(localStorage).filter((k) => k.startsWith('lc-coord:')).forEach((k) => localStorage.removeItem(k));
+        log.textContent = 'Frecuencia reiniciada\n\n' + log.textContent;
+      };
+    </script>
+  </body>
+</html>
