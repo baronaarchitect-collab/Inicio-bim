@@ -1,0 +1,14 @@
+{
+  "name": "despegue-bim-push-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Servidor opcional de recordatorios push diarios para Despegue BIM",
+  "scripts": {
+    "start": "node push-server.mjs",
+    "vapid": "web-push generate-vapid-keys"
+  },
+  "dependencies": {
+    "web-push": "^3.6.7"
+  }
+}

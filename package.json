@@ -1,0 +1,11 @@
+{
+  "name": "despegue-bim",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "PWA estilo Duolingo para aprender BIM con los playbooks de Life City BIM Management Hub",
+  "scripts": {
+    "start": "npx --yes http-server -c-1 -p 8080 .",
+    "test": "node --test tests/*.test.mjs"
+  }
+}
