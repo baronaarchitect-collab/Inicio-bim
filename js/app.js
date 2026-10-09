@@ -4,7 +4,7 @@ import * as E from './engine.js';
 import * as R from './reminders.js';
 import * as A from './account.js';
 import * as P from './paypal.js';
-import { VIDEOS, videoFor } from './videos.js';
+import { VIDEOS, videoFor, playlistMedia, unassignedPlaylists } from './videos.js';
 
 const { account } = A;
 
@@ -665,6 +665,13 @@ async function sendLead(event) {
   }
 }
 
+const PLAYLISTS_COUNT = unassignedPlaylists().length;
+
+function videoRow(attr, v, subtitle) {
+  const thumb = v.thumb ? `style="background-image:url(${v.thumb})"` : '';
+  return `<li><button class="vrow" data-action="watch" ${attr}><span class="vthumb ${v.type}" ${thumb}>${v.type === 'playlist' ? '☰▶' : '▶'}</span><span><b>${esc(v.title)}</b><small>${esc(subtitle)}</small></span></button></li>`;
+}
+
 // Videoteca: videos de las lecciones ya desbloqueadas (y no bloqueadas por PRO).
 function videoLibrary() {
   const statuses = E.lessonStatuses(state);
@@ -673,10 +680,14 @@ function videoLibrary() {
     if (needsPro(unit)) continue;
     for (const l of unit.lessons) {
       const v = videoFor(l.id);
-      if (v && statuses[l.id] !== 'locked') rows.push(`<li><button class="vrow" data-action="watch" data-id="${l.id}"><span class="vthumb" style="background-image:url(https://i.ytimg.com/vi/${v.id}/mqdefault.jpg)">▶</span><span><b>${esc(v.title)}</b><small>${esc(unit.title)}</small></span></button></li>`);
+      if (v && statuses[l.id] !== 'locked') rows.push(videoRow(`data-id="${l.id}"`, v, unit.title));
     }
   }
-  const total = Object.values(VIDEOS).filter((v) => v.url).length;
+  // Listas aún sin lección asignada: abiertas si no hay muro de pago, o para PRO.
+  if (!A.premiumRequired() || account.premium) {
+    for (const pl of unassignedPlaylists()) rows.push(videoRow(`data-n="${pl.n}"`, playlistMedia(pl.n), 'Curso en video · Juan David Barona'));
+  }
+  const total = Object.values(VIDEOS).filter((v) => v.url).length + PLAYLISTS_COUNT;
   if (!total) return '';
   return `
     <section class="card">
@@ -934,13 +945,13 @@ const actions = {
     openModal(`<div class="mascot big">❤️</div><h2>${state.hearts}/${CONFIG.maxHearts} vidas</h2><p class="muted">Pierdes una vida por cada error en una lección. ${state.hearts < CONFIG.maxHearts ? `Próxima vida en ${fmtMs(E.msToNextHeart(state))}.` : 'Tienes todas tus vidas.'} La práctica no cuesta vidas y te devuelve una.</p><button class="btn primary big" data-action="modal-practice">Practicar</button><button class="btn ghost" data-action="modal-close">Cerrar</button>`),
   'modal-close': () => closeModal(),
   watch: (el) => {
-    const v = videoFor(el.dataset.id);
+    const v = el.dataset.n ? playlistMedia(el.dataset.n) : videoFor(el.dataset.id);
     if (!v) return;
     openModal(`
       <h2>${esc(v.title)}</h2>
-      <div class="video-frame"><iframe src="https://www.youtube-nocookie.com/embed/${v.id}?rel=0&modestbranding=1&autoplay=1" title="${esc(v.title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>
-      <a class="btn small" href="https://youtu.be/${v.id}" target="_blank" rel="noopener">Abrir en YouTube</a>
-      <button class="btn primary big" data-action="modal-close">Volver a la lección</button>`);
+      <div class="video-frame"><iframe src="${v.embed}" title="${esc(v.title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>
+      <a class="btn small" href="${v.open}" target="_blank" rel="noopener">Abrir en YouTube</a>
+      <button class="btn primary big" data-action="modal-close">${ui.screen === 'lesson' ? 'Volver a la lección' : 'Cerrar'}</button>`);
   },
   'modal-quit': () => {
     closeModal();

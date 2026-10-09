@@ -1329,3 +1329,7 @@ label {
   font-size: 1.2rem;
   text-shadow: 0 1px 4px #000;
 }
+.vthumb.playlist {
+  background: linear-gradient(135deg, #c4002b, #ff0033);
+  font-size: 1rem;
+}

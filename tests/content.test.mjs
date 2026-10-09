@@ -65,3 +65,11 @@ test('videos: ids de YouTube y cobertura de lecciones', async () => {
   assert.equal(youtubeId('https://evil.com/watch?v=dQw4w9WgXcQ'), null);
   for (const v of Object.values(VIDEOS)) if (v.url) assert.ok(youtubeId(v.url), `link inválido: ${v.url}`);
 });
+
+test('videos: listas de reproducción', async () => {
+  const { parseYouTube, PLAYLISTS, playlistMedia } = await import('../js/videos.js');
+  assert.deepEqual(parseYouTube('https://www.youtube.com/playlist?list=PLiMOLHfp2jQ-R3gqCjENs2nQVCKGnwUiZ'), { type: 'playlist', id: 'PLiMOLHfp2jQ-R3gqCjENs2nQVCKGnwUiZ' });
+  assert.equal(PLAYLISTS.length, 21);
+  assert.equal(new Set(PLAYLISTS.map((p) => p.id)).size, 21);
+  assert.match(playlistMedia(1).embed, /videoseries\?list=PLiMOLHfp2jQ-R3gqCjENs2nQVCKGnwUiZ/);
+});
