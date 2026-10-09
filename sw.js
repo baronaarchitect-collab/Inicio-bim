@@ -1,5 +1,5 @@
 // Service worker de Despegue BIM: offline + recordatorios.
-const VERSION = 'despegue-v2';
+const VERSION = 'despegue-v3';
 const SHELL = [
   './',
   './index.html',
@@ -11,6 +11,7 @@ const SHELL = [
   './js/reminders.js',
   './js/account.js',
   './js/paypal.js',
+  './js/videos.js',
   './manifest.webmanifest',
   './icons/icon.svg',
   './icons/icon-192.png',

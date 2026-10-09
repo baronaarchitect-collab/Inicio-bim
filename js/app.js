@@ -4,6 +4,7 @@ import * as E from './engine.js';
 import * as R from './reminders.js';
 import * as A from './account.js';
 import * as P from './paypal.js';
+import { VIDEOS, videoFor } from './videos.js';
 
 const { account } = A;
 
@@ -305,6 +306,7 @@ function renderItem(it) {
           <h2>${esc(it.title)}</h2>
           <p>${esc(it.body)}</p>
           ${it.bullets ? `<ul>${it.bullets.map((b) => `<li>${esc(b)}</li>`).join('')}</ul>` : ''}
+          ${s.kind === 'lesson' && videoFor(s.lesson.id) ? `<button class="btn video-btn" data-action="watch" data-id="${esc(s.lesson.id)}">▶ Ver video de esta lección</button>` : ''}
         </div>`;
     case 'mc':
       return `
@@ -491,6 +493,7 @@ function renderPractice() {
           <button class="btn primary" data-action="start-practice" ${doneCount ? '' : 'disabled'}>${doneCount ? 'Empezar práctica' : 'Completa una lección primero'}</button>
         </div>
       </section>
+      ${videoLibrary()}
       <section class="card">
         <h3>Checklists de despegue</h3>
         <p class="muted">Llévalos a tu próximo proyecto en Revit:</p>
@@ -660,6 +663,26 @@ async function sendLead(event) {
   } catch {
     /* sin conexión: no bloquea el flujo */
   }
+}
+
+// Videoteca: videos de las lecciones ya desbloqueadas (y no bloqueadas por PRO).
+function videoLibrary() {
+  const statuses = E.lessonStatuses(state);
+  const rows = [];
+  for (const unit of E.getPath(state)) {
+    if (needsPro(unit)) continue;
+    for (const l of unit.lessons) {
+      const v = videoFor(l.id);
+      if (v && statuses[l.id] !== 'locked') rows.push(`<li><button class="vrow" data-action="watch" data-id="${l.id}"><span class="vthumb" style="background-image:url(https://i.ytimg.com/vi/${v.id}/mqdefault.jpg)">▶</span><span><b>${esc(v.title)}</b><small>${esc(unit.title)}</small></span></button></li>`);
+    }
+  }
+  const total = Object.values(VIDEOS).filter((v) => v.url).length;
+  if (!total) return '';
+  return `
+    <section class="card">
+      <h3>🎬 Videoteca</h3>
+      ${rows.length ? `<ul class="vlist">${rows.join('')}</ul>` : '<p class="muted">Los videos aparecen a medida que desbloqueas lecciones.</p>'}
+    </section>`;
 }
 
 // ── PRO (muro de pago) y login ────────────────────────────────
@@ -910,6 +933,15 @@ const actions = {
   'hearts-info': () =>
     openModal(`<div class="mascot big">❤️</div><h2>${state.hearts}/${CONFIG.maxHearts} vidas</h2><p class="muted">Pierdes una vida por cada error en una lección. ${state.hearts < CONFIG.maxHearts ? `Próxima vida en ${fmtMs(E.msToNextHeart(state))}.` : 'Tienes todas tus vidas.'} La práctica no cuesta vidas y te devuelve una.</p><button class="btn primary big" data-action="modal-practice">Practicar</button><button class="btn ghost" data-action="modal-close">Cerrar</button>`),
   'modal-close': () => closeModal(),
+  watch: (el) => {
+    const v = videoFor(el.dataset.id);
+    if (!v) return;
+    openModal(`
+      <h2>${esc(v.title)}</h2>
+      <div class="video-frame"><iframe src="https://www.youtube-nocookie.com/embed/${v.id}?rel=0&modestbranding=1&autoplay=1" title="${esc(v.title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>
+      <a class="btn small" href="https://youtu.be/${v.id}" target="_blank" rel="noopener">Abrir en YouTube</a>
+      <button class="btn primary big" data-action="modal-close">Volver a la lección</button>`);
+  },
   'modal-quit': () => {
     closeModal();
     session = null;

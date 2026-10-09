@@ -54,3 +54,14 @@ test('la ruta respeta el orden de los playbooks', () => {
   assert.ok(path.slice(6).every((id) => id.startsWith('esp-')));
   assert.equal(path.length, 6 + PROFILES.length - 1);
 });
+
+test('videos: ids de YouTube y cobertura de lecciones', async () => {
+  const { VIDEOS, youtubeId } = await import('../js/videos.js');
+  const lessonIds = UNITS.flatMap((u) => u.lessons.map((l) => l.id));
+  assert.deepEqual(Object.keys(VIDEOS).sort(), [...lessonIds].sort());
+  assert.equal(youtubeId('https://youtu.be/dQw4w9WgXcQ'), 'dQw4w9WgXcQ');
+  assert.equal(youtubeId('https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=3'), 'dQw4w9WgXcQ');
+  assert.equal(youtubeId('https://youtube.com/shorts/dQw4w9WgXcQ'), 'dQw4w9WgXcQ');
+  assert.equal(youtubeId('https://evil.com/watch?v=dQw4w9WgXcQ'), null);
+  for (const v of Object.values(VIDEOS)) if (v.url) assert.ok(youtubeId(v.url), `link inválido: ${v.url}`);
+});

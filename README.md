@@ -37,6 +37,7 @@ El tronco común es igual para todos. En el onboarding el alumno elige su especi
   - Una Cloud Function verifica el pago con PayPal y un webhook mantiene el estado (renovación, cancelación, suspensión).
   - El progreso se sincroniza en la nube.
   - Configuración paso a paso: [docs/SUSCRIPCIONES.md](docs/SUSCRIPCIONES.md).
+- **Videos de YouTube por lección** (sirven los no listados): botón "▶ Ver video" en la tarjeta de concepto y una 🎬 Videoteca en Practicar. Para agregarlos, pega los links en `js/videos.js`.
 - **Offline**: el service worker guarda la app en caché. El progreso se guarda en `localStorage`, en el dispositivo.
 
 ## Configuración (`js/config.js`)
@@ -83,6 +84,7 @@ js/config.js          configuración editable
 js/content.js         lecciones por playbook y rutas por especialidad
 js/engine.js          lógica pura: vidas, racha, XP, desbloqueos, logros, upsell
 js/reminders.js       permisos y capas de recordatorio
+js/videos.js          links de YouTube por lección
 js/account.js         login Firebase, estado PRO, progreso en la nube
 js/paypal.js          botón de suscripción de PayPal
 functions/            Cloud Functions: activateSubscription + paypalWebhook
