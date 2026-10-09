@@ -2,6 +2,10 @@ import { CONFIG } from './config.js';
 import { PROFILES, UNITS, lessonById } from './content.js';
 import * as E from './engine.js';
 import * as R from './reminders.js';
+import * as A from './account.js';
+import * as P from './paypal.js';
+
+const { account } = A;
 
 const STORAGE_KEY = 'despegue-bim-state';
 const $app = document.getElementById('app');
@@ -12,6 +16,7 @@ let state = load();
 let ui = { screen: state.onboarded ? 'home' : 'onboarding', step: 0 };
 let session = null; // lección o práctica en curso
 let pendingResult = null;
+let mergedFor = null; // uid cuyo progreso en la nube ya se combinó
 
 // ── Persistencia ──────────────────────────────────────────────
 function load() {
@@ -31,6 +36,12 @@ function save() {
     /* ignorar */
   }
   R.sync(state);
+  A.saveProgress(state);
+}
+
+// Lecciones PRO bloqueadas: solo si hay Firebase configurado y el usuario no es PRO.
+function needsPro(unit) {
+  return A.premiumRequired() && E.isPremiumUnit(unit) && !account.premium;
 }
 
 // ── Utilidades ────────────────────────────────────────────────
@@ -78,7 +89,7 @@ function go(screen, extra = {}) {
 // ── Render principal ──────────────────────────────────────────
 function render() {
   E.refreshHearts(state);
-  const screens = { onboarding: renderOnboarding, home: renderHome, lesson: renderLesson, result: renderResult, practice: renderPractice, profile: renderProfile, consult: renderConsult };
+  const screens = { onboarding: renderOnboarding, home: renderHome, lesson: renderLesson, result: renderResult, practice: renderPractice, profile: renderProfile, consult: renderConsult, premium: renderPremium, login: renderLogin };
   $app.innerHTML = (screens[ui.screen] || renderHome)();
   $app.dataset.screen = ui.screen;
   afterRender();
@@ -193,6 +204,7 @@ function renderHome() {
             <h3>${esc(unit.title)}</h3>
             <p>${esc(unit.subtitle)}</p>
             <span class="unit-count">${done}/${unit.lessons.length}</span>
+            ${needsPro(unit) ? '<span class="pro-chip">👑 PRO</span>' : ''}
           </div>
           <div class="nodes">${nodes}${consultNode}</div>
         </section>`;
@@ -522,6 +534,7 @@ function renderProfile() {
           <p class="muted">${esc(profileInfo().label)} · desde ${new Date(state.createdAt).toLocaleDateString('es-CO', { month: 'long', year: 'numeric' })}</p>
         </div>
       </section>
+      ${accountCard()}
       <section class="grid4">
         <div class="tile"><b>🔥 ${state.streak}</b><small>Racha actual</small></div>
         <div class="tile"><b>🏅 ${state.longestStreak}</b><small>Mejor racha</small></div>
@@ -649,6 +662,102 @@ async function sendLead(event) {
   }
 }
 
+// ── PRO (muro de pago) y login ────────────────────────────────
+function renderPremium() {
+  const pc = CONFIG.premium;
+  const containerId = `paypal-button-container-${CONFIG.paypal.planId}`;
+  let action = '';
+  if (!A.premiumRequired()) {
+    action = `<p class="callout">Todo el contenido está abierto mientras no se configuren las cuentas.</p><button class="btn primary big" data-action="go" data-to="home">Ir al curso</button>`;
+  } else if (!account.ready) {
+    action = `<p class="muted center">Cargando tu cuenta…</p>`;
+  } else if (account.premium || ui.payStatus === 'ok') {
+    action = `
+      <div class="callout gold">👑 ¡Eres PRO! Tienes acceso a todo el curso.</div>
+      <button class="btn primary big" data-action="pro-continue">${ui.pendingLesson ? 'Continuar con mi lección' : 'Ir al curso'}</button>`;
+  } else if (!account.user) {
+    action = `
+      <div class="step active"><span class="num">1</span><div><b>Crea tu cuenta gratis</b><small>Guarda tu progreso y vincula tu suscripción.</small></div></div>
+      <button class="btn primary big" data-action="go-login" data-return="premium" data-mode="up">Crear cuenta</button>
+      <button class="btn ghost" data-action="go-login" data-return="premium" data-mode="in">Ya tengo cuenta · Iniciar sesión</button>`;
+  } else {
+    const err = ui.payStatus?.startsWith('error:') ? ui.payStatus.slice(6) : '';
+    action = `
+      <div class="step done"><span class="num">✔</span><div><b>Cuenta lista</b><small>${esc(account.user.email || account.user.name)}</small></div></div>
+      <div class="step active"><span class="num">2</span><div><b>Suscríbete con PayPal</b><small>Pago seguro. Cancela cuando quieras desde tu cuenta PayPal.</small></div></div>
+      ${ui.activating ? `<p class="callout">⏳ Activando tu suscripción con PayPal…</p>` : `<div id="${containerId}" class="paypal-box"><p class="muted center">Cargando PayPal…</p></div>`}
+      ${ui.payStatus === 'pending' ? `<p class="callout">⏳ PayPal está confirmando tu pago. Tu cuenta PRO se activará sola en unos minutos; puedes seguir con el Playbook 1 mientras tanto.</p>` : ''}
+      ${err ? `<p class="callout error">${esc(err)}</p>` : ''}`;
+  }
+  return `
+    ${topBar()}
+    <main class="page premium">
+      <section class="pro-hero">
+        <div class="mascot big">👑</div>
+        <h1>${esc(pc.title)}</h1>
+        <p>Ya derribaste los mitos. Ahora desbloquea la ruta completa para modelar, documentar y coordinar como un profesional BIM.</p>
+      </section>
+      <section class="card">
+        <ul class="value pro-list">${pc.benefits.map((b) => `<li>${esc(b)}</li>`).join('')}</ul>
+      </section>
+      <section class="card steps">${action}</section>
+      <p class="muted small center">Al suscribirte aceptas el cobro recurrente del plan de PayPal. La consultoría 1:1 se adquiere por separado.</p>
+    </main>
+    ${bottomNav(null)}`;
+}
+
+function renderLogin() {
+  const up = ui.authMode === 'up';
+  const busy = ui.authBusy;
+  if (!A.premiumRequired()) {
+    return `${topBar()}<main class="page"><h1>Cuentas</h1><p class="callout">Las cuentas aún no están configuradas en esta instalación.</p><button class="btn primary big" data-action="go" data-to="home">Volver</button></main>${bottomNav(null)}`;
+  }
+  return `
+    <main class="page auth">
+      <button class="back" data-action="go" data-to="${esc(ui.returnTo || 'home')}" aria-label="Atrás">←</button>
+      <div class="hero small"><div class="mascot">🏗️</div></div>
+      <h1 class="center">${up ? 'Crea tu cuenta' : 'Inicia sesión'}</h1>
+      <p class="muted center">Tu progreso y tu suscripción quedan guardados en todos tus dispositivos.</p>
+      <button class="btn big google" data-action="auth-google" ${busy ? 'disabled' : ''}>
+        <svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3 0 5.8 1.1 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
+        Continuar con Google
+      </button>
+      <div class="divider"><span>o con tu correo</span></div>
+      <form id="auth-form" novalidate>
+        ${up ? `<label>Nombre<input id="auth-name" class="input" autocomplete="name" value="${esc(state.name)}" /></label>` : ''}
+        <label>Correo<input id="auth-email" type="email" class="input" autocomplete="email" required /></label>
+        <label>Contraseña<input id="auth-pass" type="password" class="input" autocomplete="${up ? 'new-password' : 'current-password'}" minlength="6" required /></label>
+        ${ui.authError ? `<p class="callout error">${esc(ui.authError)}</p>` : ''}
+        <button class="btn primary big" type="submit" ${busy ? 'disabled' : ''}>${busy ? 'Un momento…' : up ? 'Crear cuenta' : 'Entrar'}</button>
+      </form>
+      ${up ? '' : `<button class="btn ghost" data-action="auth-reset">Olvidé mi contraseña</button>`}
+      <button class="btn ghost" data-action="auth-toggle">${up ? '¿Ya tienes cuenta? Inicia sesión' : '¿Nuevo aquí? Crea tu cuenta'}</button>
+    </main>`;
+}
+
+function accountCard() {
+  if (!A.premiumRequired()) return '';
+  if (!account.user) {
+    return `
+      <section class="card account">
+        <h3>Tu cuenta</h3>
+        <p class="muted">Inicia sesión para guardar tu progreso en la nube y desbloquear PRO.</p>
+        <div class="row"><button class="btn small primary" data-action="go-login" data-return="profile" data-mode="up">Crear cuenta</button><button class="btn small" data-action="go-login" data-return="profile" data-mode="in">Iniciar sesión</button></div>
+      </section>`;
+  }
+  const sub = account.subscription;
+  return `
+    <section class="card account">
+      <h3>Tu cuenta</h3>
+      <p><b>${esc(account.user.name || account.user.email)}</b><br><span class="muted small">${esc(account.user.email || '')}</span></p>
+      <p>${account.premium ? '<span class="pro-chip inline">👑 PRO activo</span>' : '<span class="muted">Plan gratuito</span>'}${sub?.status && !account.premium ? ` <span class="muted small">(suscripción: ${esc(sub.status)})</span>` : ''}</p>
+      <div class="row">
+        ${account.premium ? `<a class="btn small" href="${CONFIG.paypal.manageUrl}" target="_blank" rel="noopener">Gestionar en PayPal</a>` : `<button class="btn small gold" data-action="go" data-to="premium">Hazte PRO</button>`}
+        <button class="btn small" data-action="sign-out">Cerrar sesión</button>
+      </div>
+    </section>`;
+}
+
 // ── Modales ───────────────────────────────────────────────────
 function openModal(html) {
   $modal.innerHTML = `<div class="sheet" role="dialog" aria-modal="true">${html}</div>`;
@@ -725,6 +834,7 @@ const actions = {
   'open-lesson': (el) => {
     const st = E.lessonStatuses(state)[el.dataset.id];
     if (st === 'locked') return toast('🔒 Completa las lecciones anteriores para desbloquear esta.');
+    if (needsPro(lessonById(el.dataset.id).unit)) return go('premium', { pendingLesson: el.dataset.id, payStatus: null });
     startLesson(el.dataset.id);
   },
   'quit-lesson': () => {
@@ -856,6 +966,35 @@ const actions = {
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   },
+  'go-login': (el) => go('login', { returnTo: el.dataset.return || ui.screen, authMode: el.dataset.mode || 'in', authError: null }),
+  'auth-toggle': () => {
+    ui.authMode = ui.authMode === 'up' ? 'in' : 'up';
+    ui.authError = null;
+    render();
+  },
+  'auth-google': () => runAuth(() => A.signInGoogle()),
+  'auth-reset': async () => {
+    const email = document.getElementById('auth-email')?.value.trim();
+    if (!email) return showAuthError('Escribe tu correo y vuelve a tocar "Olvidé mi contraseña".');
+    try {
+      await A.resetPassword(email);
+      toast('📧 Te enviamos un correo para restablecer tu contraseña.', 3500);
+    } catch (e) {
+      showAuthError(A.errorMessage(e));
+    }
+  },
+  'sign-out': async () => {
+    if (!confirm('¿Cerrar sesión? Tu progreso queda guardado en tu cuenta.')) return;
+    await A.signOut();
+    mergedFor = null;
+    toast('Sesión cerrada');
+  },
+  'pro-continue': () => {
+    const id = ui.pendingLesson;
+    ui.pendingLesson = null;
+    if (id) startLesson(id);
+    else go('home');
+  },
   reset: () => {
     if (!confirm('¿Seguro? Se borrará todo tu progreso.')) return;
     state = E.defaultState();
@@ -863,6 +1002,47 @@ const actions = {
     go('onboarding', { step: 0 });
   }
 };
+
+// ── Cuenta: login, muro PRO y activación ─────────────────────
+async function runAuth(fn) {
+  ui.authBusy = true;
+  ui.authError = null;
+  render();
+  try {
+    await fn();
+    ui.authBusy = false;
+    toast(`👋 ¡Hola${account.user?.name ? `, ${account.user.name}` : ''}!`);
+    go(ui.returnTo && ui.returnTo !== 'login' ? ui.returnTo : 'home');
+  } catch (e) {
+    ui.authBusy = false;
+    showAuthError(A.errorMessage(e));
+  }
+}
+
+function showAuthError(msg) {
+  ui.authError = msg;
+  render();
+}
+
+async function onSubscriptionApproved(subscriptionID) {
+  ui.activating = true;
+  ui.payStatus = null;
+  render();
+  try {
+    const r = await A.activateSubscription(subscriptionID);
+    ui.activating = false;
+    if (r.premium) {
+      account.premium = true;
+      vibrate([20, 60, 20]);
+      toast('👑 ¡Bienvenido a Despegue BIM PRO!', 3500);
+      ui.payStatus = 'ok';
+    } else ui.payStatus = 'pending';
+  } catch (e) {
+    ui.activating = false;
+    ui.payStatus = e?.code === 'functions/failed-precondition' ? 'pending' : `error:${A.errorMessage(e)}`;
+  }
+  render();
+}
 
 function captureEmail() {
   const el = document.getElementById('lead-email');
@@ -929,7 +1109,18 @@ document.addEventListener('keydown', (e) => {
 window.addEventListener('hashchange', () => {
   const h = location.hash.slice(1);
   if (!state.onboarded || ui.screen === 'lesson' || h === ui.screen) return;
-  if (['home', 'practice', 'profile', 'consult'].includes(h)) go(h);
+  if (['home', 'practice', 'profile', 'consult', 'premium'].includes(h)) go(h);
+});
+
+document.addEventListener('submit', (e) => {
+  if (e.target.id !== 'auth-form') return;
+  e.preventDefault();
+  const email = document.getElementById('auth-email').value.trim();
+  const pass = document.getElementById('auth-pass').value;
+  if (ui.authMode === 'up') {
+    const name = document.getElementById('auth-name').value.trim() || state.name;
+    runAuth(() => A.signUpEmail(name, email, pass));
+  } else runAuth(() => A.signInEmail(email, pass));
 });
 
 function vibrate(p) {
@@ -941,6 +1132,20 @@ function vibrate(p) {
 }
 
 function afterRender() {
+  const box = document.getElementById(`paypal-button-container-${CONFIG.paypal.planId}`);
+  if (box && ui.screen === 'premium' && account.user && !account.premium && !ui.activating) {
+    P.renderSubscribeButton(box, {
+      uid: account.user.uid,
+      onApproved: onSubscriptionApproved,
+      onCancel: () => toast('Pago cancelado. Puedes intentarlo cuando quieras.'),
+      onError: () => {
+        ui.payStatus = 'error:PayPal no pudo procesar el pago. Intenta de nuevo.';
+        render();
+      }
+    }).catch((e) => {
+      box.innerHTML = `<p class="muted">${esc(e.message)}</p>`;
+    });
+  }
   const label = $app.querySelector('.node.current');
   if (label && ui.screen === 'home' && !afterRender.scrolled) {
     afterRender.scrolled = true;
@@ -953,13 +1158,29 @@ function boot() {
   const r = E.refreshStreak(state);
   E.refreshHearts(state);
   const h = location.hash.slice(1);
-  if (state.onboarded && ['home', 'practice', 'profile', 'consult'].includes(h)) ui.screen = h;
+  if (state.onboarded && ['home', 'practice', 'profile', 'consult', 'premium'].includes(h)) ui.screen = h;
   save();
   render();
   if (r.frozeUsed) toast(`🧊 Tu protector salvó tu racha de ${state.streak} días`);
   else if (r.lost) toast(`💔 Perdiste tu racha de ${r.lostStreak} días. ¡Empieza una nueva hoy!`, 4000);
   else if (state.onboarded && R.missedReminderToday(state) && state.streak > 0) toast(`🔥 Tu racha de ${state.streak} días te espera. ¡Una lección y listo!`, 3500);
 }
+
+A.onChange(() => {
+  // Al iniciar sesión: recupera el progreso de la nube si es mayor que el local.
+  if (account.user && mergedFor !== account.user.uid) {
+    mergedFor = account.user.uid;
+    const remote = account.remoteProgress;
+    if (remote && (remote.xp || 0) > (state.xp || 0)) {
+      state = { ...E.defaultState(), ...remote };
+      toast('☁️ Recuperamos tu progreso guardado');
+    }
+    if (!state.name && account.user.name) state.name = account.user.name;
+    save();
+  }
+  if (ui.screen !== 'lesson') render();
+});
+A.init();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));

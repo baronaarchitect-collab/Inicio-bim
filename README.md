@@ -32,6 +32,11 @@ El tronco común es igual para todos. En el onboarding el alumno elige su especi
   - Flujo en 2 pasos: **Pagar** y luego **Agendar**.
   - Los links llevan UTM, perfil, % de avance, nombre y correo.
   - Puede enviar el lead a un webhook de **n8n**.
+- **Suscripción PRO (freemium)**:
+  - El Playbook 1 es gratis. Desde el Pilar 1 se pide cuenta (Firebase: Google o correo) y suscripción con PayPal.
+  - Una Cloud Function verifica el pago con PayPal y un webhook mantiene el estado (renovación, cancelación, suspensión).
+  - El progreso se sincroniza en la nube.
+  - Configuración paso a paso: [docs/SUSCRIPCIONES.md](docs/SUSCRIPCIONES.md).
 - **Offline**: el service worker guarda la app en caché. El progreso se guarda en `localStorage`, en el dispositivo.
 
 ## Configuración (`js/config.js`)
@@ -42,6 +47,9 @@ El tronco común es igual para todos. En el onboarding el alumno elige su especi
 | `upsell.bookingUrl` | Link de agenda (Calendly, Google Calendar booking…). **Hoy tiene un placeholder: reemplázalo.** |
 | `upsell.priceLabel` | Ej. `'USD 120 · 60 min'`. Si está vacío, se muestra "Consulta el valor". |
 | `upsell.leadWebhookUrl` | Webhook de n8n que recibe `{event, name, email, profile, progressPct, streak, xp}`. |
+| `firebase` | Config web de Firebase. Con `TU_…` no hay cuentas ni muro de pago. |
+| `paypal.clientId` / `paypal.planId` | Botón de suscripción de PayPal (valores públicos). |
+| `premium.freeUnits` | Unidades gratuitas (por defecto `['u1']`). |
 | `push.serverUrl` / `push.vapidPublicKey` | Activan el push real (ver abajo). |
 | `heartRegenMinutes`, `xpPerLesson`, `streakFreezeCost`… | Ajustes de la gamificación. |
 
@@ -75,6 +83,11 @@ js/config.js          configuración editable
 js/content.js         lecciones por playbook y rutas por especialidad
 js/engine.js          lógica pura: vidas, racha, XP, desbloqueos, logros, upsell
 js/reminders.js       permisos y capas de recordatorio
+js/account.js         login Firebase, estado PRO, progreso en la nube
+js/paypal.js          botón de suscripción de PayPal
+functions/            Cloud Functions: activateSubscription + paypalWebhook
+firestore.rules       el cliente no puede escribir "premium"
+docs/SUSCRIPCIONES.md guía de configuración Firebase + PayPal
 js/app.js             interfaz y navegación
 sw.js                 offline, periodic sync, push y clic en notificación
 server/               servidor push opcional (Node + web-push)

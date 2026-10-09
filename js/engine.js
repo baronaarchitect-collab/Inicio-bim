@@ -176,6 +176,11 @@ export function getPath(state) {
   return pathForProfile(state.profile);
 }
 
+// Unidades que exigen suscripción PRO (todas menos las gratuitas, p. ej. Playbook 1).
+export function isPremiumUnit(unit) {
+  return !CONFIG.premium.freeUnits.includes(unit.id);
+}
+
 export function isUnitComplete(state, unit) {
   return unit.lessons.every((l) => state.completed[l.id]);
 }

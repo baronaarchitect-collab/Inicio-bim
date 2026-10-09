@@ -29,6 +29,35 @@ export const CONFIG = {
     vapidPublicKey: ''
   },
 
+  // Firebase (login + estado PRO). Mientras apiKey empiece por "TU_", la app funciona
+  // sin cuentas y sin muro de pago (todo gratis). Ver docs/SUSCRIPCIONES.md.
+  firebase: {
+    apiKey: 'TU_API_KEY',
+    authDomain: 'TU_PROYECTO.firebaseapp.com',
+    projectId: 'TU_PROYECTO',
+    appId: 'TU_APP_ID',
+    functionsRegion: 'us-central1'
+  },
+
+  // Suscripción PRO con PayPal (client-id y plan son públicos; el secret va en Cloud Functions).
+  paypal: {
+    clientId: 'AeUsR4xqDPqAnX1ijFu6NzD7n_rQZ-rPD9NcTMe_qP7oezKL8XcZNIWSdEovwguX7_wHMwKs8wJwN_b8',
+    planId: 'P-16844365R64407219NLEEUPQ',
+    manageUrl: 'https://www.paypal.com/myaccount/autopay/'
+  },
+
+  premium: {
+    title: 'Despegue BIM PRO',
+    freeUnits: ['u1'], // Playbook 1 gratis como gancho
+    benefits: [
+      '🏛️ Los 3 pilares: modelado, planimetría y cantidades',
+      '🛠️ Tu ruta de especialidad + todas las demás',
+      '🧩 Coordinación y gestión BIM (Playbook 3)',
+      '☁️ Progreso guardado en la nube en todos tus dispositivos',
+      '🔥 Rachas, logros y recordatorios sin límites'
+    ]
+  },
+
   // Upsell: Consultoría 1:1 (Pago + agenda)
   upsell: {
     title: 'Consultoría BIM 1:1 · Auditoría 360°',
