@@ -1333,3 +1333,25 @@ label {
   background: linear-gradient(135deg, #c4002b, #ff0033);
   font-size: 1rem;
 }
+
+/* Checklist BIM */
+.checklist-offer {
+  border-color: var(--gold);
+}
+.checklist-offer .mini-value {
+  margin: 8px 0;
+}
+.gift {
+  background: color-mix(in srgb, var(--gold) 18%, var(--surface));
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin: 8px 0 12px;
+}
+.gift ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-weight: 700;
+}
+.paypal-box.hosted {
+  min-height: 120px;
+}

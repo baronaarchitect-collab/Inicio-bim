@@ -493,6 +493,7 @@ function renderPractice() {
           <button class="btn primary" data-action="start-practice" ${doneCount ? '' : 'disabled'}>${doneCount ? 'Empezar práctica' : 'Completa una lección primero'}</button>
         </div>
       </section>
+      ${checklistOffer()}
       ${videoLibrary()}
       <section class="card">
         <h3>Checklists de despegue</h3>
@@ -602,6 +603,7 @@ function renderConsult() {
         <div class="price"><b>${esc(u.priceLabel || 'Consulta el valor')}</b><small>${esc(u.durationLabel)}</small></div>
       </section>
 
+      ${checklistOffer('Empieza por aquí')}
       <section class="card personal">
         <b>Tu punto de partida</b>
         <p class="muted">${esc(profileInfo().label)} · ${prog.pct}% del curso · racha de ${state.streak} 🔥. Llegas con la base: en la sesión la aplicamos a <b>tu</b> proyecto.</p>
@@ -670,6 +672,21 @@ const PLAYLISTS_COUNT = unassignedPlaylists().length;
 function videoRow(attr, v, subtitle) {
   const thumb = v.thumb ? `style="background-image:url(${v.thumb})"` : '';
   return `<li><button class="vrow" data-action="watch" ${attr}><span class="vthumb ${v.type}" ${thumb}>${v.type === 'playlist' ? '☰▶' : '▶'}</span><span><b>${esc(v.title)}</b><small>${esc(subtitle)}</small></span></button></li>`;
+}
+
+// Oferta del Checklist BIM (pago único con botón alojado de PayPal + playbooks de regalo).
+function checklistOffer(kicker = 'Producto descargable') {
+  const c = CONFIG.checklist;
+  return `
+    <section class="card checklist-offer">
+      <span class="kicker">📋 ${esc(kicker)}</span>
+      <h3>${esc(c.title)}</h3>
+      <p class="muted">${esc(c.subtitle)}</p>
+      <ul class="mini-value">${c.includes.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>
+      <div class="gift"><b>🎁 Gratis con tu compra</b><ul>${c.gifts.map((g) => `<li>${esc(g)}</li>`).join('')}</ul></div>
+      <div id="paypal-container-${c.hostedButtonId}" class="paypal-box hosted"><p class="muted center">Cargando PayPal…</p></div>
+      <p class="muted small">${esc(c.delivery)}</p>
+    </section>`;
 }
 
 // Videoteca: videos de las lecciones ya desbloqueadas (y no bloqueadas por PRO).
@@ -1175,6 +1192,12 @@ function vibrate(p) {
 }
 
 function afterRender() {
+  const hosted = document.getElementById(`paypal-container-${CONFIG.checklist.hostedButtonId}`);
+  if (hosted) {
+    P.renderChecklistButton(hosted).catch((e) => {
+      hosted.innerHTML = `<p class="muted">${esc(e.message)}</p>`;
+    });
+  }
   const box = document.getElementById(`paypal-button-container-${CONFIG.paypal.planId}`);
   if (box && ui.screen === 'premium' && account.user && !account.premium && !ui.activating) {
     P.renderSubscribeButton(box, {

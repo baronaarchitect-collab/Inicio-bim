@@ -46,6 +46,23 @@ export const CONFIG = {
     manageUrl: 'https://www.paypal.com/myaccount/autopay/'
   },
 
+  // Producto de pago único: Checklist BIM (botón alojado de PayPal) + playbooks de regalo.
+  checklist: {
+    clientId: 'BAAwMWaLtA_WE3Al3WTZhvHGDiP1NuGusXOxcTlSxg5NVg0rIBfGV-HRoOYuCSM7XVRkV3RfmMAxSUT42o',
+    hostedButtonId: 'QUCSGW7YDPB8A',
+    currency: 'USD',
+    title: 'Checklist BIM de despegue',
+    subtitle: 'Los checklists de modelado, planimetría, cantidades y MEP listos para tu próximo proyecto en Revit.',
+    includes: [
+      '✅ Checklist de modelado arquitectónico',
+      '✅ Checklist de planimetría (conceptual y constructiva)',
+      '✅ Checklist de cantidades (m², ML, unidad)',
+      '✅ Checklists eléctrico, hidrosanitario y HVAC'
+    ],
+    gifts: ['📘 Playbook Inicio BIM (3 mitos)', '📗 Playbook Modelado, Planimetría y Cantidades', '📙 Playbook Consultoría BIM'],
+    delivery: 'Te enviamos el checklist y los 3 playbooks al correo de tu cuenta PayPal.'
+  },
+
   premium: {
     title: 'Despegue BIM PRO',
     freeUnits: ['u1'], // Playbook 1 gratis como gancho
