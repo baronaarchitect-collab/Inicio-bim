@@ -17,6 +17,9 @@
  *  WOMPI_EVENTS_SECRET   Secreto de eventos de Wompi (Desarrolladores → Secretos)
  *  PAYMENT_LINK_ID       4O0ONc  (vacío = aceptar cualquier link de pago)
  *  ACCESS_DAYS           30
+ *  PRO_LINKS             (opcional) JSON {"id": "url", …} con los links privados del marketplace.
+ *                        Ejecuta seedProLinks() desde el editor para copiarlos a Firestore
+ *                        (proLinks/{id}); la plataforma solo los deja leer a usuarios PRO.
  */
 
 var FIELD = 'checklistProUntil';
@@ -74,6 +77,16 @@ function doGet(e) {
   var p = (e && e.parameter) || {};
   if (p.action === 'claim') return json_(claim_(props_(), p.idToken));
   return json_({ ok: true, service: 'checklist-bim-wompi' });
+}
+
+// ── Links PRO: copia PRO_LINKS (propiedad privada) a Firestore proLinks/{id} ──
+function seedProLinks() {
+  var P = props_();
+  var links = JSON.parse(P.PRO_LINKS || '{}');
+  Object.keys(links).forEach(function (id) {
+    fsPatch_(P, 'proLinks/' + id, { url: { stringValue: links[id] } });
+    console.log('proLinks/' + id + ' ✓');
+  });
 }
 
 // ── Reclamar compras pendientes con un ID token de Firebase ──────────

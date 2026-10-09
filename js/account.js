@@ -169,6 +169,16 @@ export async function deleteUserDoc(name, id) {
   await fb.F.deleteDoc(fb.F.doc(fb.db, 'users', account.user.uid, name, id));
 }
 
+// Lee un documento cualquiera (p. ej. proLinks/{id}); null si no existe o no hay permiso.
+export async function getDocData(...path) {
+  try {
+    const snap = await fb.F.getDoc(fb.F.doc(fb.db, ...path));
+    return snap.exists() ? snap.data() : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getIdToken() {
   return fb?.auth.currentUser ? fb.auth.currentUser.getIdToken() : null;
 }

@@ -46,9 +46,9 @@ export const CONFIG = {
     manageUrl: 'https://www.paypal.com/myaccount/autopay/'
   },
 
-  // Checklist BIM: app aparte (./checklist/) con cuenta gratis y suscripción por Wompi.
+  // Checklist BIM: vive en la Plataforma BIM (./plataforma/) con cuenta gratis y acceso PRO por Wompi.
   checklist: {
-    appUrl: './checklist/',
+    appUrl: './plataforma/#checklist',
     title: 'Checklist BIM de despegue',
     subtitle: 'Los checklists de modelado, planimetría, cantidades, MEP y coordinación en una app, por proyecto y en español o inglés.',
     includes: [

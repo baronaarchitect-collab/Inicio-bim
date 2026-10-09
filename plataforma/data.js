@@ -1,9 +1,10 @@
-// Contenido del Checklist BIM de despegue (Playbook 2 · Checklist de despegue + Gate de coordinación del Playbook 3).
+// Contenido del Checklist BIM de despegue (gates de la plataforma) (Playbook 2 · Checklist de despegue + Gate de coordinación del Playbook 3).
 // Bilingüe: cada texto es { es, en }.
 
 export const GROUPS = [
   {
     id: 'arq',
+    owner: { es: 'Arquitectura', en: 'Architecture' },
     icon: '📐',
     title: { es: 'Modelado arquitectónico', en: 'Architectural modeling' },
     sections: [
@@ -11,10 +12,10 @@ export const GROUPS = [
         id: 'arq-setup',
         title: { es: 'Configuración inicial', en: 'Initial setup' },
         items: [
-          { es: 'Plantilla correcta seleccionada', en: 'Correct template selected' },
-          { es: 'Unidades configuradas correctamente', en: 'Units set up correctly' },
-          { es: 'Niveles definidos en alzado', en: 'Levels defined in elevation' },
-          { es: 'Rejillas colocadas', en: 'Grids placed' },
+          { p: 'critical', es: 'Plantilla correcta seleccionada', en: 'Correct template selected' },
+          { p: 'high', es: 'Unidades configuradas correctamente', en: 'Units set up correctly' },
+          { p: 'critical', es: 'Niveles definidos en alzado', en: 'Levels defined in elevation' },
+          { p: 'high', es: 'Rejillas colocadas', en: 'Grids placed' },
           { es: 'Norte definido', en: 'North defined' },
           { es: 'Planta AutoCAD insertada y alineada', en: 'AutoCAD plan linked and aligned' },
           { es: 'Archivo limpio sin líneas 2D innecesarias', en: 'Clean file with no unnecessary 2D lines' }
@@ -39,15 +40,16 @@ export const GROUPS = [
         items: [
           { es: 'Espesores correctos', en: 'Correct thicknesses' },
           { es: 'Materiales asignados', en: 'Materials assigned' },
-          { es: 'Muros correctamente unidos', en: 'Walls properly joined' },
-          { es: 'Sin advertencias críticas', en: 'No critical warnings' },
-          { es: 'Habitaciones colocadas y nombradas', en: 'Rooms placed and named' }
+          { p: 'high', es: 'Muros correctamente unidos', en: 'Walls properly joined' },
+          { p: 'critical', es: 'Sin advertencias críticas', en: 'No critical warnings' },
+          { p: 'high', es: 'Habitaciones colocadas y nombradas', en: 'Rooms placed and named' }
         ]
       }
     ]
   },
   {
     id: 'plan',
+    owner: { es: 'Arquitectura / Dibujo', en: 'Architecture / Drafting' },
     icon: '🗂️',
     title: { es: 'Planimetría', en: 'Drawings' },
     sections: [
@@ -64,7 +66,7 @@ export const GROUPS = [
           { es: 'Plantas acotadas', en: 'Plans dimensioned' },
           { es: 'Niveles visibles', en: 'Levels visible' },
           { es: 'Rejillas visibles', en: 'Grids visible' },
-          { es: 'Tabla de áreas creada', en: 'Area schedule created' },
+          { p: 'high', es: 'Tabla de áreas creada', en: 'Area schedule created' },
           { es: 'Site plan incluido', en: 'Site plan included' },
           { es: 'Norte colocado', en: 'North arrow placed' },
           { es: 'Linderos acotados', en: 'Property lines dimensioned' },
@@ -86,6 +88,7 @@ export const GROUPS = [
   },
   {
     id: 'qty',
+    owner: { es: 'Presupuesto', en: 'Cost estimating' },
     icon: '📊',
     title: { es: 'Cantidades · Arquitectura', en: 'Quantities · Architecture' },
     sections: [
@@ -97,7 +100,7 @@ export const GROUPS = [
           { es: 'Campos: Type y Area', en: 'Fields: Type and Area' },
           { es: 'Sort por Type', en: 'Sorted by Type' },
           { es: '"Itemize every instance" desactivado', en: '"Itemize every instance" turned off' },
-          { es: 'Totales activados en Area', en: 'Totals enabled on Area' }
+          { p: 'high', es: 'Totales activados en Area', en: 'Totals enabled on Area' }
         ]
       },
       {
@@ -121,6 +124,7 @@ export const GROUPS = [
   },
   {
     id: 'ele',
+    owner: { es: 'Eléctrico', en: 'Electrical' },
     icon: '⚡',
     title: { es: 'Eléctrico', en: 'Electrical' },
     sections: [
@@ -131,7 +135,7 @@ export const GROUPS = [
           { es: 'Tomas colocadas correctamente', en: 'Receptacles placed correctly' },
           { es: 'Alturas definidas', en: 'Mounting heights defined' },
           { es: 'Tablero eléctrico insertado', en: 'Electrical panel placed' },
-          { es: 'Circuitos creados (Power asignado)', en: 'Circuits created (Power assigned)' },
+          { p: 'critical', es: 'Circuitos creados (Power asignado)', en: 'Circuits created (Power assigned)' },
           { es: 'Luminarias colocadas', en: 'Light fixtures placed' },
           { es: 'Interruptores colocados', en: 'Switches placed' }
         ]
@@ -140,10 +144,10 @@ export const GROUPS = [
         id: 'ele-conduit',
         title: { es: 'Conduits', en: 'Conduits' },
         items: [
-          { es: 'Altura definida antes de trazar', en: 'Height set before drawing' },
+          { p: 'high', es: 'Altura definida antes de trazar', en: 'Height set before drawing' },
           { es: 'Tuberías alineadas correctamente', en: 'Conduits aligned correctly' },
           { es: 'Cajas 4x4 conectadas', en: '4x4 boxes connected' },
-          { es: 'Service Type asignado', en: 'Service Type assigned' }
+          { p: 'high', es: 'Service Type asignado', en: 'Service Type assigned' }
         ]
       },
       {
@@ -171,6 +175,7 @@ export const GROUPS = [
   },
   {
     id: 'hid',
+    owner: { es: 'Hidrosanitario', en: 'Plumbing' },
     icon: '💧',
     title: { es: 'Hidrosanitario', en: 'Plumbing' },
     sections: [
@@ -178,10 +183,10 @@ export const GROUPS = [
         id: 'hid-model',
         title: { es: 'Modelado', en: 'Modeling' },
         items: [
-          { es: 'Diámetros correctos', en: 'Correct diameters' },
+          { p: 'high', es: 'Diámetros correctos', en: 'Correct diameters' },
           { es: 'Tuberías modeladas completas', en: 'Pipes fully modeled' },
           { es: 'System Type creado', en: 'System Type created' },
-          { es: 'System Type aplicado', en: 'System Type applied' }
+          { p: 'critical', es: 'System Type aplicado', en: 'System Type applied' }
         ]
       },
       {
@@ -209,6 +214,7 @@ export const GROUPS = [
   },
   {
     id: 'hvac',
+    owner: { es: 'Mecánico / HVAC', en: 'Mechanical / HVAC' },
     icon: '❄️',
     title: { es: 'HVAC', en: 'HVAC' },
     sections: [
@@ -235,6 +241,7 @@ export const GROUPS = [
   },
   {
     id: 'coord',
+    owner: { es: 'Coordinación BIM', en: 'BIM coordination' },
     icon: '🧩',
     title: { es: 'Gate de coordinación', en: 'Coordination gate' },
     sections: [
@@ -242,11 +249,11 @@ export const GROUPS = [
         id: 'coord-gate',
         title: { es: 'Antes de iniciar clash detection', en: 'Before starting clash detection' },
         items: [
-          { es: 'Topografía revisada por constructora', en: 'Survey reviewed by the contractor' },
-          { es: 'Arquitectura validada', en: 'Architecture validated' },
-          { es: 'Estructura validada', en: 'Structure validated' },
-          { es: 'Coordenadas compartidas configuradas', en: 'Shared coordinates set up' },
-          { es: 'Plantilla Revit unificada', en: 'Unified Revit template' }
+          { p: 'critical', es: 'Topografía revisada por constructora', en: 'Survey reviewed by the contractor' },
+          { p: 'high', es: 'Arquitectura validada', en: 'Architecture validated' },
+          { p: 'high', es: 'Estructura validada', en: 'Structure validated' },
+          { p: 'critical', es: 'Coordenadas compartidas configuradas', en: 'Shared coordinates set up' },
+          { p: 'high', es: 'Plantilla Revit unificada', en: 'Unified Revit template' }
         ]
       }
     ]
