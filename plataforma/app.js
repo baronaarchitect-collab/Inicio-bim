@@ -27,7 +27,7 @@ let ui = {
   authMode: 'up',
   authError: null,
   busy: false,
-  gate: null,
+  gate: GROUPS.some((g) => g.id === location.hash.split('/')[1]) ? location.hash.split('/')[1] : null,
   q: '',
   status: '',
   cat: '',
@@ -678,7 +678,10 @@ document.addEventListener('submit', (e) => {
 
 window.addEventListener('hashchange', () => {
   const v = readView();
+  const g = location.hash.split('/')[1];
+  if (GROUPS.some((x) => x.id === g)) ui.gate = g;
   if (v !== ui.view) go(v);
+  else render();
 });
 
 A.onChange(() => {

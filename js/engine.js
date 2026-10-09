@@ -3,6 +3,7 @@
 
 import { CONFIG } from './config.js';
 import { pathForProfile } from './content.js';
+import { planById } from './plans.js';
 
 export const STATE_VERSION = 1;
 
@@ -28,7 +29,8 @@ export function defaultState(now = new Date()) {
     completed: {}, // lessonId -> { perfect, completedAt, times }
     perfectCount: 0,
     achievements: {}, // id -> fecha
-    upsell: { shown: {}, lastShownAt: null, paymentClickedAt: null, bookedAt: null, email: '' }
+    upsell: { shown: {}, lastShownAt: null, paymentClickedAt: null, bookedAt: null, email: '' },
+    plan: null // { id, startedAt, done: [YYYY-MM-DD por día completado] }
   };
 }
 
@@ -230,6 +232,40 @@ export function nextLesson(state) {
   return null;
 }
 
+// ── Planes BIM (un día por fecha) ─────────────────────────────
+export function startPlan(state, planId, now = new Date()) {
+  state.plan = { id: planId, startedAt: now.toISOString(), done: [] };
+  return state.plan;
+}
+
+// Estado de cada día: 'done' | 'today' | 'tomorrow' (ya hizo uno hoy) | 'locked'
+export function planDayStatuses(state, now = new Date()) {
+  const plan = state.plan && planById(state.plan.id);
+  if (!plan) return [];
+  const done = state.plan.done || [];
+  const didToday = done[done.length - 1] === dayKey(now);
+  return plan.days.map((_, i) => (i < done.length ? 'done' : i === done.length ? (didToday ? 'tomorrow' : 'today') : 'locked'));
+}
+
+export function canCompletePlanDay(state, now = new Date()) {
+  const plan = state.plan && planById(state.plan.id);
+  if (!plan) return false;
+  const i = state.plan.done.length;
+  return planDayStatuses(state, now)[i] === 'today' && Boolean(state.completed[plan.days[i].lesson]);
+}
+
+export function completePlanDay(state, now = new Date()) {
+  if (!canCompletePlanDay(state, now)) return null;
+  const plan = planById(state.plan.id);
+  state.plan.done.push(dayKey(now));
+  state.gems += 10;
+  addXp(state, 5, now);
+  bumpStreak(state, now);
+  const finished = state.plan.done.length >= plan.days.length;
+  if (finished) state.plan.finishedAt = now.toISOString();
+  return { finished, day: state.plan.done.length, total: plan.days.length };
+}
+
 // ── Logros ────────────────────────────────────────────────────
 export const ACHIEVEMENTS = [
   { id: 'first', icon: '🚀', title: 'Despegue', desc: 'Completa tu primera lección', test: (s) => Object.keys(s.completed).length >= 1 },
@@ -295,6 +331,13 @@ export function reminderMessage(state, now = new Date()) {
   const name = state.name ? `${state.name}, ` : '';
   const next = nextLesson(state);
   const lessonTxt = next ? ` Siguiente: "${next.lesson.title}".` : '';
+  const plan = state.plan && planById(state.plan.id);
+  if (plan && !state.plan.finishedAt && planDayStatuses(state, now)[state.plan.done.length] === 'today') {
+    return {
+      title: `${plan.icon} Día ${state.plan.done.length + 1} de ${plan.days.length} · ${plan.title}`,
+      body: `${state.streak > 0 && !practicedToday(state, now) ? `🔥 Racha de ${state.streak} en juego. ` : ''}${name}tu tarea de hoy: ${plan.days[state.plan.done.length].task}`
+    };
+  }
   if (state.streak > 0 && !practicedToday(state, now)) {
     return {
       title: `🔥 Tu racha de ${state.streak} ${state.streak === 1 ? 'día' : 'días'} está en riesgo`,

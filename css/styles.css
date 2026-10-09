@@ -290,7 +290,7 @@ label {
   width: 100%;
   max-width: 560px;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   background: var(--surface);
   border-top: 2px solid var(--line);
   padding-bottom: env(safe-area-inset-bottom);
@@ -1355,4 +1355,101 @@ label {
 .checklist-offer a.btn {
   display: block;
   text-decoration: none;
+}
+
+/* Planes */
+.plan-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+.plan-card h3 {
+  margin-bottom: 2px;
+}
+.plan-card p {
+  margin: 0 0 2px;
+}
+.plan-card.dim {
+  opacity: 0.6;
+}
+.plan-ic {
+  font-size: 2rem;
+}
+.plan-ic.big {
+  font-size: 2.8rem;
+}
+.plan-head {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin: 6px 0 14px;
+}
+.plan-head > div {
+  flex: 1;
+}
+.plan-head h1 {
+  font-size: 1.4rem;
+  margin-bottom: 2px;
+}
+.today.tomorrow {
+  border-color: var(--green);
+}
+.steps-list {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 14px;
+  counter-reset: s;
+}
+.steps-list li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 10px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.steps-list li > span {
+  grid-column: 1 / -1;
+  color: var(--muted);
+}
+.steps-list li.ok b::after {
+  content: ' ✔';
+  color: var(--green);
+}
+.steps-list a.btn {
+  text-decoration: none;
+}
+.day-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.day-list li {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 7px 0;
+  font-weight: 700;
+}
+.day-list li.locked {
+  color: var(--muted);
+}
+.day-list .dot {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--surface-2);
+  font-size: 0.8rem;
+}
+.day-list .done .dot {
+  background: var(--gold);
+}
+.day-list .today .dot,
+.day-list .tomorrow .dot {
+  background: var(--green);
+  color: #fff;
 }

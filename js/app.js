@@ -5,6 +5,7 @@ import * as R from './reminders.js';
 import * as A from './account.js';
 import * as P from './paypal.js';
 import { VIDEOS, videoFor, playlistMedia, unassignedPlaylists } from './videos.js';
+import { planById, plansForProfile } from './plans.js';
 
 const { account } = A;
 
@@ -90,7 +91,7 @@ function go(screen, extra = {}) {
 // ── Render principal ──────────────────────────────────────────
 function render() {
   E.refreshHearts(state);
-  const screens = { onboarding: renderOnboarding, home: renderHome, lesson: renderLesson, result: renderResult, practice: renderPractice, profile: renderProfile, consult: renderConsult, premium: renderPremium, login: renderLogin };
+  const screens = { onboarding: renderOnboarding, home: renderHome, lesson: renderLesson, result: renderResult, practice: renderPractice, profile: renderProfile, consult: renderConsult, premium: renderPremium, login: renderLogin, plans: renderPlans };
   $app.innerHTML = (screens[ui.screen] || renderHome)();
   $app.dataset.screen = ui.screen;
   afterRender();
@@ -112,6 +113,7 @@ function topBar() {
 function bottomNav(active) {
   const items = [
     ['home', '🏠', 'Aprender'],
+    ['plans', '🗓️', 'Planes'],
     ['practice', '🏋️', 'Practicar'],
     ['consult', '⭐', 'Consultoría'],
     ['profile', '👤', 'Perfil']
@@ -244,12 +246,13 @@ function buildItem(item) {
   return it;
 }
 
-function startLesson(lessonId) {
+function startLesson(lessonId, { fromPlan = false } = {}) {
   const found = lessonById(lessonId);
   if (!found) return;
   if (state.hearts <= 0) return showNoHearts();
   session = {
     kind: 'lesson',
+    fromPlan,
     unit: found.unit,
     lesson: found.lesson,
     queue: found.lesson.items.map(buildItem),
@@ -449,7 +452,7 @@ function finishSession() {
   else res = E.completePractice(state, { mistakes: s.mistakes });
   const trigger = s.kind === 'lesson' ? E.upsellTriggerAfterLesson(state, s.unit) : null;
   save();
-  pendingResult = { ...res, trigger, kind: s.kind, title: s.lesson.title };
+  pendingResult = { ...res, trigger, kind: s.kind, title: s.lesson.title, fromPlan: s.fromPlan };
   session = null;
   go('result');
   vibrate([20, 60, 20]);
@@ -476,6 +479,69 @@ function renderResult() {
       ${r.newAchievements.map((a) => `<div class="achv-new">${a.icon} <b>Logro desbloqueado:</b> ${esc(a.title)}</div>`).join('')}
       <button class="btn primary big" data-action="result-continue">Continuar</button>
     </main>`;
+}
+
+// ── Planes BIM ────────────────────────────────────────────────
+function renderPlans() {
+  const plan = state.plan && planById(state.plan.id);
+  if (!plan) {
+    return `
+      ${topBar()}
+      <main class="page">
+        <h1>Planes BIM</h1>
+        <p class="muted">Un día a la vez: lección de 5 minutos, video, tarea en tu proyecto real y la herramienta para aplicarla.</p>
+        ${plansForProfile(state.profile)
+          .map((p, i) => {
+            const fit = p.for === 'all' || p.for.includes(state.profile);
+            return `<section class="card plan-card ${fit ? '' : 'dim'}">
+              <div class="plan-ic">${p.icon}</div>
+              <div><h3>${esc(p.title)}</h3><p class="muted">${esc(p.desc)}</p><small class="muted">${p.days.length} días${i === 0 && fit ? ' · Recomendado para ti' : ''}</small></div>
+              <button class="btn ${i === 0 && fit ? 'primary' : ''} small" data-action="plan-start" data-id="${p.id}">Empezar</button>
+            </section>`;
+          })
+          .join('')}
+      </main>
+      ${bottomNav('plans')}`;
+  }
+  const st = E.planDayStatuses(state);
+  const i = Math.min(state.plan.done.length, plan.days.length - 1);
+  const day = plan.days[i];
+  const found = lessonById(day.lesson);
+  const lessonDone = Boolean(state.completed[day.lesson]);
+  const video = videoFor(day.lesson);
+  const finished = Boolean(state.plan.finishedAt);
+  const pct = Math.round((state.plan.done.length / plan.days.length) * 100);
+  return `
+    ${topBar()}
+    <main class="page">
+      <section class="plan-head">
+        <span class="plan-ic big">${plan.icon}</span>
+        <div><h1>${esc(plan.title)}</h1><p class="muted">${state.plan.done.length}/${plan.days.length} días · ${pct}%</p><div class="bar"><i style="width:${pct}%"></i></div></div>
+      </section>
+      ${
+        finished
+          ? `<section class="card"><h3>🏆 Plan completado</h3><p class="muted">Elige otro plan o lleva lo aprendido a un proyecto real.</p><button class="btn gold" data-action="go" data-to="consult">Consultoría 1:1</button></section>`
+          : `<section class="card today ${st[i]}">
+        <span class="kicker">${st[i] === 'tomorrow' ? '✅ Hoy ya cumpliste · mañana sigue' : `📅 Día ${i + 1} de ${plan.days.length}`}</span>
+        <h3>${esc(found.lesson.title)}</h3>
+        <ol class="steps-list">
+          <li class="${lessonDone ? 'ok' : ''}"><b>Lección de 5 min</b><button class="btn small ${lessonDone ? '' : 'primary'}" data-action="plan-lesson" data-id="${day.lesson}">${lessonDone ? 'Repasar' : 'Empezar'}</button></li>
+          <li><b>Video</b>${video ? `<button class="btn small" data-action="watch" data-id="${day.lesson}">▶ Ver</button>` : `<button class="btn small" data-action="go" data-to="practice">🎬 Videoteca</button>`}</li>
+          <li><b>Aplica en tu proyecto</b><span>${esc(day.task)}</span></li>
+          ${day.tool ? `<li><b>Herramienta</b><a class="btn small" href="${day.tool.href}">${esc(day.tool.label)} ↗</a></li>` : ''}
+        </ol>
+        ${st[i] === 'today' ? `<button class="btn primary big" data-action="plan-done" ${E.canCompletePlanDay(state) ? '' : 'disabled'}>${lessonDone ? 'Marcar día completo' : 'Completa la lección para cerrar el día'}</button>` : ''}
+      </section>`
+      }
+      <section class="card">
+        <h3>Recorrido</h3>
+        <ul class="day-list">${plan.days
+          .map((dd, k) => `<li class="${st[k]}"><span class="dot">${st[k] === 'done' ? '✔' : k + 1}</span><span>${esc(lessonById(dd.lesson).lesson.title)}</span></li>`)
+          .join('')}</ul>
+      </section>
+      <button class="btn ghost" data-action="plan-change">Cambiar de plan</button>
+    </main>
+    ${bottomNav('plans')}`;
 }
 
 // ── Práctica ──────────────────────────────────────────────────
@@ -943,10 +1009,37 @@ const actions = {
   'result-continue': () => {
     const r = pendingResult;
     pendingResult = null;
-    go('home');
+    go(r?.fromPlan ? 'plans' : 'home');
     if (r?.trigger && E.canShowUpsell(state, r.trigger)) setTimeout(() => showUpsellModal(r.trigger), 250);
   },
   'start-practice': () => startPractice(),
+  'plan-start': (el) => {
+    E.startPlan(state, el.dataset.id);
+    save();
+    toast(`🗓️ Plan iniciado: ${planById(el.dataset.id).title}`);
+    render();
+  },
+  'plan-change': () => {
+    if (state.plan && !state.plan.finishedAt && !confirm('¿Cambiar de plan? Perderás el avance del plan actual.')) return;
+    state.plan = null;
+    save();
+    render();
+  },
+  'plan-lesson': (el) => {
+    const found = lessonById(el.dataset.id);
+    if (needsPro(found.unit)) return go('premium', { pendingLesson: el.dataset.id, payStatus: null });
+    startLesson(el.dataset.id, { fromPlan: true });
+  },
+  'plan-done': () => {
+    const r = E.completePlanDay(state);
+    if (!r) return;
+    save();
+    vibrate([20, 60, 20]);
+    if (r.finished) {
+      openModal(`<div class="mascot big">🏆</div><h2>¡Plan completado!</h2><p class="muted">Terminaste ${r.total} días de práctica aplicada. Es el momento de llevarlo a un proyecto real con acompañamiento.</p><button class="btn gold big" data-action="modal-consult">Ver consultoría 1:1</button><button class="btn ghost" data-action="modal-close">Cerrar</button>`);
+    } else toast(`✅ Día ${r.day} de ${r.total} completo · +10 💎 +5 XP. Vuelve mañana por el siguiente.`, 3500);
+    render();
+  },
   'buy-freeze': () => {
     if (E.buyStreakFreeze(state)) {
       save();
@@ -1168,7 +1261,7 @@ document.addEventListener('keydown', (e) => {
 window.addEventListener('hashchange', () => {
   const h = location.hash.slice(1);
   if (!state.onboarded || ui.screen === 'lesson' || h === ui.screen) return;
-  if (['home', 'practice', 'profile', 'consult', 'premium'].includes(h)) go(h);
+  if (['home', 'plans', 'practice', 'profile', 'consult', 'premium'].includes(h)) go(h);
 });
 
 document.addEventListener('submit', (e) => {
@@ -1217,7 +1310,7 @@ function boot() {
   const r = E.refreshStreak(state);
   E.refreshHearts(state);
   const h = location.hash.slice(1);
-  if (state.onboarded && ['home', 'practice', 'profile', 'consult', 'premium'].includes(h)) ui.screen = h;
+  if (state.onboarded && ['home', 'plans', 'practice', 'profile', 'consult', 'premium'].includes(h)) ui.screen = h;
   save();
   render();
   if (r.frozeUsed) toast(`🧊 Tu protector salvó tu racha de ${state.streak} días`);
