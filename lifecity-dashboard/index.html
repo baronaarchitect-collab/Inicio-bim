@@ -209,7 +209,7 @@ footer{padding-block:56px 36px; background:var(--bg2)}
       <a href="#proyectos">Proyectos</a>
       <a href="#descargas">Descargas</a>
     </nav>
-    <a class="btn btn-gold" data-link="coordinacion" href="https://www.lifecity.com.co/" target="_blank" rel="noopener">Coordinación BIM <span>↗</span></a>
+    <a class="btn btn-gold" data-link="coordinacion" href="https://www.lifecity.com.co/coordinacion-bim/" target="_blank" rel="noopener">Coordinación BIM <span>↗</span></a>
   </div>
 </header>
 
@@ -227,7 +227,7 @@ footer{padding-block:56px 36px; background:var(--bg2)}
     </div>
 
     <nav class="quick" aria-label="Accesos rápidos">
-      <a class="q main" data-link="coordinacion" href="https://www.lifecity.com.co/" target="_blank" rel="noopener">
+      <a class="q main" data-link="coordinacion" href="https://www.lifecity.com.co/coordinacion-bim/" target="_blank" rel="noopener">
         <span class="k">Sitio actual</span><span class="t">Coordinación BIM</span><span class="h" data-host="coordinacion"></span>
       </a>
       <a class="q" data-link="obra4d" href="https://coordinacion4d-obra.netlify.app/" target="_blank" rel="noopener">
@@ -279,7 +279,7 @@ footer{padding-block:56px 36px; background:var(--bg2)}
       </div>
       <div class="feature-side">
         <span class="url" data-host="coordinacion"></span>
-        <a class="btn btn-gold" data-link="coordinacion" href="https://www.lifecity.com.co/" target="_blank" rel="noopener">Abrir sitio ↗</a>
+        <a class="btn btn-gold" data-link="coordinacion" href="https://www.lifecity.com.co/coordinacion-bim/" target="_blank" rel="noopener">Abrir sitio ↗</a>
       </div>
     </article>
 
@@ -434,7 +434,7 @@ footer{padding-block:56px 36px; background:var(--bg2)}
   <div class="wrap">
     <div class="f-grid">
       <div>
-        <a class="brand" data-link="coordinacion" href="https://www.lifecity.com.co/" target="_blank" rel="noopener">
+        <a class="brand" data-link="coordinacion" href="https://www.lifecity.com.co/coordinacion-bim/" target="_blank" rel="noopener">
           <span class="brand-mark">LC</span>
           <span class="brand-txt">LIFE CITY<span class="brand-sub">BIM MANAGEMENT HUB · CALI, COLOMBIA</span></span>
         </a>
@@ -444,24 +444,27 @@ footer{padding-block:56px 36px; background:var(--bg2)}
         <a href="#plataformas">Plataformas</a>
         <a href="#proyectos">Proyectos</a>
         <a href="#descargas">Descargas</a>
-        <a data-link="coordinacion" href="https://www.lifecity.com.co/" target="_blank" rel="noopener">Coordinación BIM</a>
+        <a data-link="coordinacion" href="https://www.lifecity.com.co/coordinacion-bim/" target="_blank" rel="noopener">Coordinación BIM</a>
       </div>
     </div>
     <div class="f-bottom">
       <span>© 2026 Life City · Todos los derechos reservados</span>
-      <span>hola@lifecity.co</span>
+      <span>proyectos@lifecity.com.co</span>
     </div>
   </div>
 </footer>
 
 <script>
+/* Enlaces antiguos (www.lifecity.com.co/#servicios…) apuntaban a la portada anterior. */
+if (/^#(servicios|contacto|mision|valores)$/.test(location.hash)) location.replace("/coordinacion-bim/" + location.hash);
+</script>
+<script>
 /* ═══════════════════════════════════════════════════════════════
    CONFIGURACIÓN: todos los enlaces del dashboard salen de aquí.
-   Si el dashboard reemplaza la portada de www.lifecity.com.co, mueve
-   la página de coordinación actual a otra ruta y cambia "coordinacion".
+   La antigua portada de coordinación vive ahora en /coordinacion-bim/.
    ═══════════════════════════════════════════════════════════════ */
 const LINKS = {
-  coordinacion: "https://www.lifecity.com.co/",
+  coordinacion: "https://www.lifecity.com.co/coordinacion-bim/",
   obra4d      : "https://coordinacion4d-obra.netlify.app/",
   editor4d    : "https://baronaarchitect-collab.github.io/4d-lc-editor/",
   bimTotal    : "https://coordinacionbimtotal.netlify.app/",
