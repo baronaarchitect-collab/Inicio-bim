@@ -1,0 +1,115 @@
+/* Life City · Sala de ventas con renders — estilos del showroom (comprador) */
+:root {
+  --bg: #0d0e0c;
+  --bg2: #161814;
+  --line: rgba(241, 237, 228, .14);
+  --tx: #f1ede4;
+  --tx2: #b9b3a6;
+  --gold: #c8a96a;
+  --ok: #3fb67a;
+  --res: #e0a93b;
+  --sold: #8b867d;
+  --serif: 'Cormorant Garamond', Georgia, serif;
+  --sans: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+.sr, .sr * { box-sizing: border-box; }
+.sr { position: relative; width: 100%; height: 100%; min-height: 420px; background: var(--bg); color: var(--tx); font: 15px/1.5 var(--sans); overflow: hidden; }
+.sr button { font: inherit; color: inherit; cursor: pointer; }
+.sr-view { position: absolute; inset: 0; background: var(--bg); transition: opacity .45s ease, transform .6s cubic-bezier(.2,.7,.2,1); }
+.sr-view.off { opacity: 0; pointer-events: none; transform: scale(1.03); }
+
+/* escenario: imagen ajustada (contain) sobre su propio fondo difuminado */
+.sr-stage { position: absolute; inset: 0; display: grid; place-items: center; overflow: hidden; }
+.sr-blur { position: absolute; inset: -40px; background-size: cover; background-position: center; filter: blur(28px) brightness(.45) saturate(1.1); }
+.sr-frame { position: relative; box-shadow: 0 30px 80px rgba(0,0,0,.45); }
+.sr-frame img { display: block; width: 100%; height: 100%; user-select: none; -webkit-user-drag: none; }
+.sr-frame svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.sr-plan .sr-frame { background: #f4f1ea; }
+
+.sr-zone { fill: rgba(200,169,106,0); stroke: rgba(255,255,255,0); stroke-width: 1.5; vector-effect: non-scaling-stroke; cursor: pointer; transition: fill .2s, stroke .2s; }
+.sr-zone:hover, .sr-zone.hl { fill: rgba(200,169,106,.38); stroke: #fff; }
+.sr-zone.none { cursor: not-allowed; }
+.sr-zone.none:hover, .sr-zone.none.hl { fill: rgba(139,134,125,.45); }
+.sr-apt { stroke-width: 2; vector-effect: non-scaling-stroke; cursor: pointer; transition: fill .2s, stroke .2s; }
+.sr-apt.disponible { fill: rgba(63,182,122,.28); stroke: var(--ok); }
+.sr-apt.reservado { fill: rgba(224,169,59,.34); stroke: var(--res); }
+.sr-apt.vendido { fill: rgba(80,76,70,.5); stroke: var(--sold); }
+.sr-apt:hover, .sr-apt.hl { fill-opacity: 1; filter: brightness(1.15); }
+.sr-apt.disponible:hover, .sr-apt.disponible.hl { fill: rgba(63,182,122,.5); }
+.sr-apt.sel { stroke: #fff; stroke-width: 3; }
+.sr-tag { pointer-events: none; font: 600 13px var(--sans); fill: #111; paint-order: stroke; stroke: rgba(255,255,255,.85); stroke-width: 3px; }
+
+/* barra superior */
+.sr-top { position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 14px; padding: 18px 22px; background: linear-gradient(rgba(0,0,0,.6), transparent); z-index: 5; pointer-events: none; }
+.sr-top > * { pointer-events: auto; }
+.sr-brand { font: 500 24px/1 var(--serif); letter-spacing: .04em; }
+.sr-brand small { display: block; font: 500 10px/1.6 var(--sans); letter-spacing: .28em; color: var(--gold); text-transform: uppercase; }
+.sr-sp { flex: 1; }
+.sr-btn { border: 1px solid var(--line); background: rgba(13,14,12,.6); backdrop-filter: blur(8px); padding: 9px 16px; border-radius: 999px; font-size: 13px; letter-spacing: .04em; }
+.sr-btn:hover { border-color: var(--gold); }
+a.sr-btn { color: var(--tx); text-decoration: none; display: inline-block; }
+.sr-btn.gold { background: var(--gold); color: #17140d; border-color: var(--gold); font-weight: 600; }
+.sr-btn.gold:hover { filter: brightness(1.08); }
+.sr-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* tooltip */
+.sr-tip { position: absolute; z-index: 6; pointer-events: none; background: rgba(13,14,12,.92); border: 1px solid var(--line); border-radius: 10px; padding: 9px 13px; font-size: 13px; white-space: nowrap; transform: translate(-50%, calc(-100% - 14px)); opacity: 0; transition: opacity .15s; }
+.sr-tip.on { opacity: 1; }
+.sr-tip b { font: 500 19px/1.1 var(--serif); display: block; }
+.sr-tip span { color: var(--tx2); }
+
+/* lista lateral de pisos */
+.sr-floors { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); z-index: 4; display: flex; flex-direction: column; gap: 4px; max-height: 70%; overflow: auto; padding: 4px; scrollbar-width: none; }
+.sr-floors button { display: flex; justify-content: space-between; gap: 14px; min-width: 132px; border: 1px solid var(--line); background: rgba(13,14,12,.55); backdrop-filter: blur(6px); border-radius: 8px; padding: 6px 12px; font-size: 12px; text-align: left; }
+.sr-floors button:hover, .sr-floors button.hl { border-color: var(--gold); background: rgba(200,169,106,.2); }
+.sr-floors button em { font-style: normal; color: var(--ok); }
+.sr-floors button em.z { color: var(--sold); }
+.sr-hint { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 4; font-size: 12px; letter-spacing: .22em; text-transform: uppercase; color: var(--tx2); background: rgba(13,14,12,.55); padding: 8px 16px; border-radius: 999px; }
+
+/* leyenda de la planta */
+.sr-legend { position: absolute; left: 22px; bottom: 22px; z-index: 4; display: flex; gap: 14px; font-size: 12px; background: rgba(13,14,12,.7); padding: 8px 14px; border-radius: 999px; }
+.sr-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+
+/* ficha del apartamento */
+.sr-sheet { position: absolute; top: 0; right: 0; bottom: 0; width: min(420px, 100%); z-index: 8; background: var(--bg2); border-left: 1px solid var(--line); transform: translateX(102%); transition: transform .45s cubic-bezier(.2,.7,.2,1); overflow-y: auto; }
+.sr-sheet.on { transform: none; }
+.sr-sheet .x { position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: rgba(0,0,0,.4); z-index: 2; }
+.sr-sheet .hero { width: 100%; aspect-ratio: 16/10; object-fit: cover; display: block; background: #222; }
+.sr-sheet .in { padding: 22px 24px 28px; }
+.sr-k { font-size: 11px; letter-spacing: .26em; text-transform: uppercase; color: var(--gold); }
+.sr-sheet h3 { font: 500 34px/1.1 var(--serif); margin: 6px 0 14px; }
+.sr-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-bottom: 18px; }
+.sr-facts div { background: var(--bg2); padding: 10px 12px; }
+.sr-facts b { display: block; font: 500 22px/1.1 var(--serif); }
+.sr-facts span { font-size: 11px; color: var(--tx2); }
+.sr-price { display: flex; justify-content: space-between; align-items: baseline; padding: 14px 0; border-top: 1px solid var(--line); }
+.sr-price b { font: 500 26px var(--serif); }
+.sr-price.sep b { color: var(--gold); }
+.sr-price span { color: var(--tx2); font-size: 13px; }
+.sr-state { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; }
+.sr-state.disponible { background: rgba(63,182,122,.18); color: var(--ok); }
+.sr-state.reservado { background: rgba(224,169,59,.18); color: var(--res); }
+.sr-state.vendido { background: rgba(139,134,125,.25); color: var(--tx2); }
+.sr-sheet form { display: grid; gap: 10px; margin-top: 8px; }
+.sr-sheet label { font-size: 12px; color: var(--tx2); display: grid; gap: 4px; }
+.sr-sheet input { font: inherit; color: var(--tx); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.sr-sheet input:focus { outline: none; border-color: var(--gold); }
+.sr-full { width: 100%; padding: 14px; border-radius: 10px; font-size: 14px; }
+.sr-note { font-size: 12px; color: var(--tx2); margin: 10px 0 0; }
+.sr-pal { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 14px; }
+.sr-pal i { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line); }
+.sr-dec { margin: 0 0 14px; padding: 0; list-style: none; display: grid; gap: 8px; }
+.sr-dec li { border-left: 2px solid var(--gold); padding: 2px 0 2px 12px; font-size: 13px; color: var(--tx2); }
+.sr-dec li b { color: var(--tx); display: block; font-weight: 600; }
+.sr-sec { margin-top: 18px; }
+.sr-empty { display: grid; place-items: center; height: 100%; color: var(--tx2); text-align: center; padding: 30px; }
+
+@media (max-width: 720px) {
+  .sr-floors { right: 8px; min-width: 0; }
+  .sr-floors button { min-width: 0; padding: 5px 9px; }
+  .sr-floors button em { display: none; }
+  .sr-top { padding: 12px 14px; }
+  .sr-brand { font-size: 19px; }
+  .sr-legend { left: 12px; bottom: 12px; gap: 9px; }
+  .sr-hint { display: none; }
+}

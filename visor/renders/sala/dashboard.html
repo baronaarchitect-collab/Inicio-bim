@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Dashboard · Sala de ventas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="showroom.css">
+<style>
+  :root { --line: rgba(241,237,228,.14); }
+  html, body { margin: 0; background: #0d0e0c; color: #f1ede4; font: 14px/1.5 Inter, system-ui, sans-serif; }
+  header { display: flex; align-items: center; gap: 14px; padding: 16px 22px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: #0d0e0c; z-index: 10; flex-wrap: wrap; }
+  header h1 { font: 500 26px/1 'Cormorant Garamond', serif; margin: 0; }
+  header h1 small { display: block; font: 500 10px/1.8 Inter; letter-spacing: .26em; color: #c8a96a; text-transform: uppercase; }
+  nav { display: flex; gap: 4px; flex-wrap: wrap; }
+  nav button { background: none; border: 0; color: #b9b3a6; padding: 8px 12px; border-radius: 8px; font: inherit; cursor: pointer; }
+  nav button.on { background: #161814; color: #f1ede4; }
+  main { max-width: 1240px; margin: 0 auto; padding: 24px 16px 80px; }
+  section { display: none; } section.on { display: block; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+  .card { background: #161814; border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+  .card h3 { margin: 0 0 4px; font: 500 22px 'Cormorant Garamond', serif; }
+  .k { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: #c8a96a; }
+  .big { font: 500 34px/1.1 'Cormorant Garamond', serif; }
+  label { display: grid; gap: 4px; font-size: 12px; color: #b9b3a6; margin-bottom: 10px; }
+  input, select, textarea { font: inherit; color: #f1ede4; background: #0d0e0c; border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; }
+  input:focus, select:focus { outline: none; border-color: #c8a96a; }
+  .help { color: #b9b3a6; font-size: 12.5px; }
+  .warn { border-left: 3px solid #e0a93b; padding: 8px 12px; background: rgba(224,169,59,.08); border-radius: 6px; font-size: 12.5px; color: #e9d3a6; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 7px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+  th { color: #b9b3a6; font-weight: 500; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; position: sticky; top: 64px; background: #0d0e0c; }
+  td input, td select { padding: 5px 7px; width: 100%; box-sizing: border-box; }
+  td.n { font-variant-numeric: tabular-nums; }
+  .bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+  .pill { font-size: 12px; padding: 2px 9px; border-radius: 999px; }
+  #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #c8a96a; color: #17140d; padding: 10px 18px; border-radius: 999px; font-weight: 600; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 20; }
+  #toast.on { opacity: 1; }
+  code { background: #0d0e0c; padding: 2px 6px; border-radius: 5px; font-size: 12px; word-break: break-all; }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="ttl">Dashboard<small>Sala de ventas con renders</small></h1>
+  <nav id="nav">
+    <button data-s="resumen" class="on">Resumen</button><button data-s="inventario">Inventario</button><button data-s="pagos">Pagos Wompi</button>
+    <button data-s="zonas">Render y plantas</button><button data-s="proyecto">Proyecto</button><button data-s="publicar">Publicar</button>
+  </nav>
+  <span style="flex:1"></span>
+  <a class="sr-btn" href="index.html" target="_blank" style="text-decoration:none">Ver sala ↗</a>
+  <button class="sr-btn gold" id="save">Guardar</button>
+</header>
+<main>
+  <section id="s-resumen" class="on"></section>
+
+  <section id="s-inventario">
+    <div class="bar">
+      <select id="f-piso"><option value="">Todos los pisos</option></select>
+      <select id="f-est"><option value="">Todos los estados</option><option>disponible</option><option>reservado</option><option>vendido</option></select>
+      <span style="flex:1"></span>
+      <button class="sr-btn" id="recalc">Recalcular precios desde la base</button>
+    </div>
+    <div style="overflow:auto"><table id="tbl"></table></div>
+    <p class="help">Al editar un precio a mano, esa unidad deja de recalcularse con el incremento por piso. Los estados se ponen en <b>reservado</b> solos cuando Wompi aprueba una separación en este navegador; las ventas en sala márcalas aquí.</p>
+  </section>
+
+  <section id="s-pagos">
+    <div class="grid">
+      <div class="card">
+        <span class="k">Separación</span><h3>Dónde cae la plata</h3>
+        <p class="help">El comprador paga la separación en el Web Checkout de Wompi y el dinero llega a <b>tu cuenta de Wompi</b>. Encuentra las llaves en <i>comercios.wompi.co → Desarrolladores</i>.</p>
+        <label>Llave pública<input id="w-pk" placeholder="pub_prod_… o pub_test_…"></label>
+        <label>Secreto de integridad<input id="w-int" type="password" placeholder="prod_integrity_… o test_integrity_…" autocomplete="off"></label>
+        <label>…o URL de tu función de firma (recomendado)<input id="w-url" placeholder="https://tu-sitio.netlify.app/.netlify/functions/firma"></label>
+        <div class="warn">El secreto de integridad queda dentro de <code>datos.js</code>, visible para quien lo busque. Con él solo se pueden crear cobros hacia tu cuenta (nadie puede sacar dinero), y la página de gracias rechaza pagos cuyo monto no coincida. Aun así lo más limpio es usar la función de firma incluida en <code>netlify/functions/firma.js</code> y dejar este campo vacío.</div>
+        <div class="bar" style="margin-top:12px"><button class="sr-btn" id="w-test">Probar llave</button><span id="w-res" class="help"></span></div>
+      </div>
+      <div class="card">
+        <span class="k">Configuración en Wompi</span><h3>URL de redirección</h3>
+        <p class="help">Wompi devuelve al comprador a esta página con <code>?id=</code> de la transacción; ahí se verifica el pago y se marca el apartamento.</p>
+        <p><code id="w-back"></code></p>
+        <label>% de separación<input id="p-sep" type="number" min="1" max="100" step="0.5"></label>
+        <p class="help">Ejemplo con el apto más caro: <b id="w-ej"></b></p>
+        <label style="display:flex;gap:8px;align-items:center;color:#f1ede4"><input type="checkbox" id="p-crm"> Enviar cada separación aprobada al CRM de Life City</label>
+      </div>
+    </div>
+  </section>
+
+  <section id="s-zonas"><div id="zonas"></div>
+    <p class="help" style="margin-top:14px">Para cambiar una imagen en el sitio publicado, reemplaza el archivo con el mismo nombre en la carpeta <code>img/</code>.</p>
+  </section>
+
+  <section id="s-proyecto">
+    <div class="grid">
+      <div class="card">
+        <label>Nombre del proyecto<input id="p-n"></label>
+        <label>Constructora<input id="p-e"></label>
+        <label>Ciudad / sector<input id="p-c"></label>
+        <label>WhatsApp del asesor (con indicativo, ej. 573001234567)<input id="p-w"></label>
+      </div>
+      <div class="card">
+        <label>Moneda<select id="p-m"><option>COP</option><option>USD</option></select></label>
+        <label>Incremento de precio por piso (%)<input id="p-inc" type="number" step="0.1"></label>
+        <p class="help">Se aplica sobre el precio base de cada apartamento desde el piso más bajo.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="s-publicar">
+    <div class="grid">
+      <div class="card"><span class="k">1</span><h3>Descarga datos.js</h3><p class="help">Los cambios se guardan en este navegador. Para que los vean los compradores, descarga <code>datos.js</code> y reemplázalo en tu hosting (GitHub Pages, Netlify o el FTP de tu web).</p><button class="sr-btn gold" id="dl">Descargar datos.js</button></div>
+      <div class="card"><span class="k">2</span><h3>Respaldo</h3><p class="help">Exporta o importa todo el proyecto como JSON.</p><div class="bar"><button class="sr-btn" id="exp">Exportar JSON</button><button class="sr-btn" id="imp">Importar JSON</button></div></div>
+      <div class="card"><span class="k">3</span><h3>Restablecer</h3><p class="help">Descarta los cambios de este navegador y vuelve a lo que dice <code>datos.js</code>.</p><button class="sr-btn" id="reset" style="color:#e06b5b">Descartar cambios locales</button></div>
+    </div>
+  </section>
+</main>
+<div id="toast"></div>
+<script src="datos.js"></script>
+<script src="showroom.js"></script>
+<script src="editor.js"></script>
+<script src="zonas.js"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); }, esc = SR.esc;
+  var S = SR.overlay.apply(JSON.parse(JSON.stringify(window.SALA || {})));
+  if (!(S.unidades || []).length) SR.syncUnits(S);
+  S.wompi = S.wompi || {};
+  var dirty = false;
+  function cur() { return S.moneda || 'COP'; }
+  function toast(t) { var e = $('toast'); e.textContent = t; e.classList.add('on'); setTimeout(function () { e.classList.remove('on'); }, 1800); }
+  function mark() { dirty = true; $('save').textContent = 'Guardar •'; }
+  function save() {
+    SR.overlay.set(S, { proyecto: S.proyecto, empresa: S.empresa, ciudad: S.ciudad, whatsapp: S.whatsapp, moneda: S.moneda, separacion: S.separacion, incremento: S.incremento, wompi: S.wompi, pisos: S.pisos, plantas: S.plantas, unidades: S.unidades, crm: S.crm });
+    dirty = false; $('save').textContent = 'Guardar'; toast('Guardado en este navegador'); resumen();
+  }
+  $('save').onclick = save;
+  window.addEventListener('beforeunload', function (e) { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+  /* navegación */
+  $('nav').onclick = function (e) {
+    var s = e.target.dataset.s; if (!s) return;
+    document.querySelectorAll('nav button').forEach(function (b) { b.classList.toggle('on', b.dataset.s === s); });
+    document.querySelectorAll('section').forEach(function (x) { x.classList.toggle('on', x.id === 's-' + s); });
+    if (s === 'inventario') tabla(); if (s === 'resumen') resumen(); if (s === 'zonas' && !zn) zn = SR.zonas($('zonas'), S, { onChange: function () { mark(); } });
+  };
+  var zn = null;
+
+  /* resumen */
+  function resumen() {
+    document.title = 'Dashboard · ' + S.proyecto;
+    $('ttl').innerHTML = esc(S.proyecto) + '<small>Dashboard · sala de ventas</small>';
+    var U = S.unidades || [], c = { disponible: 0, reservado: 0, vendido: 0 }, v = { disponible: 0, reservado: 0, vendido: 0 };
+    U.forEach(function (u) { c[u.estado]++; v[u.estado] += u.precio || 0; });
+    var sep = U.filter(function (u) { return u.estado === 'reservado'; }).reduce(function (s, u) { return s + SR.sepValue(S, u); }, 0);
+    var pk = S.wompi.publicKey, ok = SR.wompi.configured(S.wompi);
+    $('s-resumen').innerHTML = '<div class="grid">' +
+      card('Disponibles', c.disponible, SR.money(v.disponible, cur()) + ' en inventario') +
+      card('Reservados', c.reservado, 'Separaciones ≈ ' + SR.money(sep, cur())) +
+      card('Vendidos', c.vendido, SR.money(v.vendido, cur())) +
+      card('Avance de ventas', U.length ? Math.round((c.reservado + c.vendido) * 100 / U.length) + ' %' : '–', U.length + ' unidades en ' + (S.pisos || []).length + ' pisos') +
+      '</div><div class="card" style="margin-top:14px"><span class="k">Pasarela</span><h3>' + (ok ? 'Wompi conectado · ' + (SR.wompi.env(pk) === 'test' ? 'modo pruebas' : 'producción') : 'Falta conectar Wompi') + '</h3><p class="help">' +
+      (ok ? 'Los compradores pagan el ' + (S.separacion || 10) + ' % de separación directo a tu cuenta.' : 'Sin llave pública el botón de separar avisa que escriban al asesor. Configúrala en <b>Pagos Wompi</b>.') + '</p></div>';
+    function card(k, n, t) { return '<div class="card"><span class="k">' + k + '</span><div class="big">' + n + '</div><span class="help">' + t + '</span></div>'; }
+  }
+
+  /* inventario */
+  function tabla() {
+    var fp = $('f-piso'), fe = $('f-est');
+    if (fp.options.length <= 1) (S.pisos || []).slice().sort(function (a, b) { return b.nivel - a.nivel; }).forEach(function (p) { fp.add(new Option(p.nombre, p.id)); });
+    var nombre = {}; (S.pisos || []).forEach(function (p) { nombre[p.id] = p.nombre; });
+    var U = (S.unidades || []).filter(function (u) { return (!fp.value || u.piso === fp.value) && (!fe.value || u.estado === fe.value); });
+    $('tbl').innerHTML = '<thead><tr><th>Apto</th><th>Piso</th><th>Área</th><th>Alc/Baños</th><th>Precio</th><th>Separación</th><th>Estado</th></tr></thead><tbody>' +
+      U.map(function (u) {
+        return '<tr data-id="' + esc(u.id) + '"><td><b>' + esc(u.id) + '</b></td><td>' + esc(nombre[u.piso] || u.piso) + '</td><td class="n">' + (u.area || '') + ' m²</td><td>' + (u.alcobas || '–') + ' / ' + (u.banos || '–') + '</td>' +
+          '<td><input type="number" step="1000000" data-f="precio" value="' + (u.precio || 0) + '"' + (u.manual ? ' style="border-color:#c8a96a" title="Precio fijado a mano"' : '') + '></td>' +
+          '<td class="n">' + SR.money(SR.sepValue(S, u), cur()) + '</td>' +
+          '<td><select data-f="estado">' + Object.keys(SR.ESTADOS).map(function (k) { return '<option' + (k === u.estado ? ' selected' : '') + '>' + k + '</option>'; }).join('') + '</select></td></tr>';
+      }).join('') + '</tbody>';
+  }
+  $('f-piso').onchange = $('f-est').onchange = tabla;
+  $('tbl').onchange = function (e) {
+    var f = e.target.dataset.f, id = e.target.closest('tr').dataset.id;
+    var u = S.unidades.filter(function (x) { return x.id === id; })[0];
+    if (f === 'precio') { u.precio = +e.target.value; u.manual = true; } else u.estado = e.target.value;
+    mark(); tabla();
+  };
+  $('recalc').onclick = function () { if (!confirm('¿Volver a calcular todos los precios desde el precio base y el incremento por piso?')) return; S.unidades.forEach(function (u) { delete u.manual; }); SR.syncUnits(S); mark(); tabla(); };
+
+  /* pagos */
+  function bind(id, get, set) { var e = $(id); e.value = get() == null ? '' : get(); e.oninput = function () { set(e.value); mark(); pagos(); }; }
+  bind('w-pk', function () { return S.wompi.publicKey; }, function (v) { S.wompi.publicKey = v.trim(); });
+  bind('w-int', function () { return S.wompi.integrity; }, function (v) { S.wompi.integrity = v.trim(); });
+  bind('w-url', function () { return S.wompi.firmaUrl; }, function (v) { S.wompi.firmaUrl = v.trim(); });
+  bind('p-sep', function () { return S.separacion || 10; }, function (v) { S.separacion = +v; });
+  $('p-crm').checked = !!S.crm; $('p-crm').onchange = function () { S.crm = $('p-crm').checked; mark(); };
+  function pagos() {
+    $('w-back').textContent = new URL('gracias.html', location.href).href;
+    var top = (S.unidades || []).reduce(function (m, u) { return u.precio > (m.precio || 0) ? u : m; }, {});
+    $('w-ej').textContent = top.id ? 'Apto ' + top.id + ': ' + SR.money(top.precio, cur()) + ' → separación ' + SR.money(SR.sepValue(S, top), cur()) : '–';
+  }
+  $('w-test').onclick = function () {
+    var pk = S.wompi.publicKey, r = $('w-res');
+    if (!SR.wompi.configured(S.wompi)) { r.textContent = 'La llave debe empezar por pub_prod_ o pub_test_.'; return; }
+    r.textContent = 'Consultando…';
+    fetch(SR.wompi.api(SR.wompi.env(pk)) + '/merchants/' + encodeURIComponent(pk)).then(function (x) { return x.json(); }).then(function (j) {
+      r.innerHTML = j.data ? '✓ Comercio: <b>' + esc(j.data.name) + '</b> (' + (SR.wompi.env(pk) === 'test' ? 'pruebas' : 'producción') + ')' : 'Wompi no reconoce esa llave.';
+    }).catch(function () { r.textContent = 'No se pudo consultar Wompi.'; });
+  };
+
+  /* proyecto */
+  bind('p-n', function () { return S.proyecto; }, function (v) { S.proyecto = v; });
+  bind('p-e', function () { return S.empresa; }, function (v) { S.empresa = v; });
+  bind('p-c', function () { return S.ciudad; }, function (v) { S.ciudad = v; });
+  bind('p-w', function () { return S.whatsapp; }, function (v) { S.whatsapp = v.replace(/\D/g, ''); });
+  bind('p-inc', function () { return S.incremento || 0; }, function (v) { S.incremento = +v; SR.syncUnits(S); });
+  $('p-m').value = S.moneda || 'COP'; $('p-m').onchange = function () { S.moneda = $('p-m').value; mark(); };
+
+  /* publicar */
+  function file(name, text, type) { var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: type })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
+  function datos() { var D = Object.assign({}, window.SALA, S); return '/* Datos de ' + S.proyecto + ' · generado por el dashboard ' + new Date().toISOString().slice(0, 10) + ' */\nwindow.SALA = ' + JSON.stringify(D, null, 1) + ';\n'; }
+  $('dl').onclick = function () { save(); file('datos.js', datos(), 'text/javascript'); };
+  $('exp').onclick = function () { file(SR.slug(S.proyecto) + '.json', JSON.stringify(S, null, 1), 'application/json'); };
+  $('imp').onclick = function () {
+    var i = document.createElement('input'); i.type = 'file'; i.accept = '.json,application/json';
+    i.onchange = function () { i.files[0].text().then(function (t) { S = JSON.parse(t); save(); location.reload(); }).catch(function () { alert('Ese archivo no es un respaldo válido.'); }); };
+    i.click();
+  };
+  $('reset').onclick = function () { if (confirm('¿Descartar los cambios guardados en este navegador?')) { SR.overlay.clear(S); dirty = false; location.reload(); } };
+
+  resumen(); pagos();
+})();
+</script>
+</body>
+</html>

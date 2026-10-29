@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Separación · Gracias</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="showroom.css">
+<style>
+  html, body { margin: 0; min-height: 100%; background: #0d0e0c; color: #f1ede4; font: 15px/1.55 Inter, system-ui, sans-serif; }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 48px 16px 60px; }
+  .card { background: #161814; border: 1px solid rgba(241,237,228,.14); border-radius: 16px; padding: 28px 26px; }
+  h1 { font: 500 40px/1.1 'Cormorant Garamond', Georgia, serif; margin: 10px 0 8px; }
+  .muted { color: #b9b3a6; }
+  dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 18px; margin: 22px 0; font-size: 14px; }
+  dt { color: #b9b3a6; } dd { margin: 0; text-align: right; word-break: break-all; }
+  .acts { display: grid; gap: 10px; margin-top: 18px; }
+  .acts a { text-decoration: none; text-align: center; }
+  .spin { width: 34px; height: 34px; border: 3px solid rgba(200,169,106,.25); border-top-color: #c8a96a; border-radius: 50%; animation: s 1s linear infinite; margin: 8px 0 14px; }
+  @keyframes s { to { transform: rotate(360deg); } }
+  .ok { color: #3fb67a; } .bad { color: #e06b5b; }
+</style>
+</head>
+<body>
+<div class="wrap"><div class="card" id="c"><div class="spin"></div><p class="sr-k">Verificando tu pago</p><h1>Un momento…</h1><p class="muted" id="st">Consultando la transacción en Wompi.</p></div></div>
+<script src="datos.js"></script>
+<script src="showroom.js"></script>
+<script>
+(function () {
+  var S = SR.overlay.apply(window.SALA || {});
+  if (!(S.unidades || []).length) SR.syncUnits(S);
+  var q = new URLSearchParams(location.search), id = q.get('id');
+  var key = 'sr:pendiente:' + SR.slug(S.proyecto), pend = null;
+  try { pend = JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) {}
+  var c = document.getElementById('c'), esc = SR.esc, cur = S.moneda || 'COP';
+
+  function unitFromRef(ref) { var p = String(ref || '').split('-'); return p.length > 2 ? p[p.length - 2] : ''; }
+
+  function done(t) {
+    var uid = (pend && pend.ref === t.reference ? pend.unidad : unitFromRef(t.reference));
+    var u = (S.unidades || []).filter(function (x) { return x.id === uid; })[0] || {};
+    var expected = pend && pend.ref === t.reference ? pend.cents : null;
+    var approved = t.status === 'APPROVED' && (expected == null || t.amount_in_cents === expected);
+    var cli = (pend && pend.cliente) || {};
+    if (approved) {
+      SR.overlay.mark(S, uid, 'reservado');
+      try { localStorage.removeItem(key); } catch (e) {}
+      if (S.crm && !S.demo) import('https://proyectos-lifecity.github.io/crm/lead.js').then(function (m) {
+        return m.guardarLead({ nombre: cli.nombre, celular: cli.celular, correo: cli.correo, monto: t.amount_in_cents / 100, proyecto: S.proyecto, mensaje: 'Separación apto ' + uid + ' · ' + t.id, origen: 'Separación sala de renders' });
+      }).catch(function (e) { console.warn('CRM:', e); });
+    }
+    var wa = 'Hola, acabo de separar el apartamento ' + uid + ' de ' + S.proyecto + '.\nReferencia: ' + t.reference + '\nTransacción Wompi: ' + t.id + '\nValor: ' + SR.money(t.amount_in_cents / 100, cur) + (cli.nombre ? '\nNombre: ' + cli.nombre : '');
+    var rec = S.recorrido || {};
+    c.innerHTML = (approved
+      ? '<p class="sr-k ok">Separación aprobada</p><h1>¡El apartamento ' + esc(uid) + ' es tuyo!</h1><p class="muted">Quedó reservado a tu nombre. Tu asesor te contactará para firmar la promesa y definir el plan de pagos.</p>'
+      : t.status === 'PENDING'
+        ? '<p class="sr-k">Pago en proceso</p><h1>Tu pago sigue pendiente</h1><p class="muted">Algunos medios (PSE, efectivo) tardan unos minutos. Vuelve a abrir esta página o escríbele al asesor con la referencia.</p>'
+        : '<p class="sr-k bad">Pago no aprobado</p><h1>No pudimos confirmar la separación</h1><p class="muted">Estado: ' + esc(t.status) + (t.status === 'APPROVED' ? ' (el monto no coincide con la separación)' : '') + '. El apartamento sigue disponible; puedes intentarlo de nuevo.</p>') +
+      '<dl><dt>Proyecto</dt><dd>' + esc(S.proyecto) + '</dd><dt>Apartamento</dt><dd>' + esc(uid) + (u.area ? ' · ' + u.area + ' m²' : '') + '</dd>' +
+      (u.precio ? '<dt>Valor del apto</dt><dd>' + SR.money(u.precio, cur) + '</dd>' : '') +
+      '<dt>Separación pagada</dt><dd>' + SR.money(t.amount_in_cents / 100, cur) + '</dd><dt>Referencia</dt><dd>' + esc(t.reference) + '</dd><dt>Transacción</dt><dd>' + esc(t.id) + '</dd>' +
+      (t.payment_method_type ? '<dt>Medio</dt><dd>' + esc(t.payment_method_type) + '</dd>' : '') + '</dl>' +
+      '<div class="acts">' +
+      (S.whatsapp ? '<a class="sr-btn gold sr-full" target="_blank" href="https://wa.me/' + esc(S.whatsapp) + '?text=' + encodeURIComponent(wa) + '">Enviar comprobante al asesor por WhatsApp</a>' : '') +
+      (approved && rec.url ? '<a class="sr-btn sr-full" target="_blank" href="' + esc(rec.url) + '">Recorrer mi apartamento en 3D ↗</a>' : '') +
+      '<a class="sr-btn sr-full" href="index.html">Volver a la sala de ventas</a></div>' +
+      (S.demo ? '<p class="sr-note">Modo demo: no se cobró nada. Con tu llave de Wompi este paso consulta la transacción real.</p>' : '');
+  }
+
+  if (id === 'demo' && S.demo) {
+    var ref = q.get('ref') || (pend && pend.ref) || 'SEP-DEMO';
+    return setTimeout(function () { done({ id: 'DEMO-' + Date.now(), status: 'APPROVED', reference: ref, amount_in_cents: pend ? pend.cents : 0, payment_method_type: 'DEMO' }); }, 900);
+  }
+  if (!id) { c.innerHTML = '<p class="sr-k">Sala de ventas</p><h1>No llegó ninguna transacción</h1><p class="muted">Esta página se abre sola cuando terminas el pago en Wompi.</p><div class="acts"><a class="sr-btn sr-full" href="index.html">Ir a la sala de ventas</a></div>'; return; }
+  var env = q.get('env') === 'test' ? 'test' : q.get('env') === 'prod' ? 'prod' : (pend && pend.env) || SR.wompi.env((S.wompi || {}).publicKey);
+  SR.wompi.poll(id, env, function (t) { document.getElementById('st') && (document.getElementById('st').textContent = 'Estado: ' + t.status + '…'); })
+    .then(done)
+    .catch(function (e) { c.innerHTML = '<p class="sr-k bad">Error</p><h1>No pudimos consultar Wompi</h1><p class="muted">' + esc(e.message) + '. Guarda este número de transacción: <b>' + esc(id) + '</b>.</p><div class="acts"><a class="sr-btn sr-full" href="">Reintentar</a></div>'; });
+})();
+</script>
+</body>
+</html>

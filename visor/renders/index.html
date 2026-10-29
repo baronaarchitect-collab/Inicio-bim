@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sala de Ventas con Renders · Life City</title>
+<meta name="description" content="Tu render frontal se vuelve una sala de ventas: cada piso es un botón, cada apartamento muestra su valor y se separa en línea con Wompi.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="sala/showroom.css">
+<style>
+  :root { --bg: #0d0e0c; --bg2: #161814; --line: rgba(241,237,228,.14); --tx: #f1ede4; --tx2: #b9b3a6; --gold: #c8a96a; --green: #3fb67a; }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--tx); font: 16px/1.6 Inter, system-ui, sans-serif; }
+  a { color: var(--gold); }
+  .w { max-width: 1180px; margin: 0 auto; padding: 0 16px; }
+  .top { position: sticky; top: 0; z-index: 30; background: rgba(13,14,12,.86); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+  .top .w { display: flex; align-items: center; gap: 16px; height: 64px; }
+  .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--tx); font: 600 12px Inter; letter-spacing: .22em; }
+  .logo b { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 8px; background: var(--gold); color: #17140d; letter-spacing: 0; }
+  .top nav { margin-left: auto; display: flex; gap: 8px; }
+  .k { font-size: 11px; letter-spacing: .28em; text-transform: uppercase; color: var(--gold); font-weight: 500; }
+  h1, h2, h3 { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; line-height: 1.05; margin: 0; }
+  h1 { font-size: clamp(42px, 7vw, 86px); letter-spacing: -.01em; }
+  h1 em, h2 em { color: var(--gold); }
+  h2 { font-size: clamp(32px, 4.4vw, 54px); }
+  .lead { color: var(--tx2); font-size: 18px; max-width: 640px; }
+  .hero { padding: 72px 0 36px; }
+  .hero .acts { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 26px; }
+  .btn { display: inline-block; text-decoration: none; border: 1px solid var(--line); background: transparent; color: var(--tx); padding: 13px 22px; border-radius: 999px; font: 500 14px Inter; letter-spacing: .03em; cursor: pointer; }
+  .btn:hover { border-color: var(--gold); }
+  .btn.gold { background: var(--gold); border-color: var(--gold); color: #17140d; font-weight: 600; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .demo { position: relative; height: min(78vh, 760px); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; background: #000; }
+  .demo iframe { width: 100%; height: 100%; border: 0; display: block; }
+  .demo-bar { display: flex; gap: 14px; justify-content: space-between; align-items: center; flex-wrap: wrap; margin: 12px 0 0; color: var(--tx2); font-size: 14px; }
+  section { padding: 80px 0; }
+  .flow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; margin-top: 34px; }
+  .flow div { background: var(--bg); padding: 22px 18px; }
+  .flow b { font: 500 42px/1 'Cormorant Garamond', serif; color: var(--gold); display: block; margin-bottom: 10px; }
+  .flow h4 { margin: 0 0 6px; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; }
+  .flow p { margin: 0; color: var(--tx2); font-size: 14px; }
+
+  /* asistente */
+  #implementar { background: linear-gradient(#0d0e0c, #12130f); border-top: 1px solid var(--line); }
+  .steps { display: flex; gap: 6px; margin: 30px 0 22px; flex-wrap: wrap; }
+  .steps button { flex: 1; min-width: 130px; text-align: left; border: 1px solid var(--line); background: transparent; color: var(--tx2); border-radius: 12px; padding: 10px 14px; font: 13px Inter; cursor: pointer; }
+  .steps button b { display: block; font: 500 20px 'Cormorant Garamond', serif; color: var(--tx); }
+  .steps button.on { border-color: var(--gold); background: rgba(200,169,106,.08); }
+  .steps button.done b::after { content: ' ✓'; color: var(--green); font-size: 15px; }
+  .panel { display: none; background: var(--bg2); border: 1px solid var(--line); border-radius: 18px; padding: 26px; }
+  .panel.on { display: block; }
+  .panel h3 { font-size: 32px; margin-bottom: 6px; }
+  .panel .sub { color: var(--tx2); margin: 0 0 22px; max-width: 760px; }
+  .fg { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+  label.f { display: grid; gap: 5px; font-size: 13px; color: var(--tx2); }
+  label.f input, label.f select { font: inherit; font-size: 15px; color: var(--tx); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px; }
+  label.f input:focus { outline: none; border-color: var(--gold); }
+  .nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 24px; flex-wrap: wrap; align-items: center; }
+  .err { color: #e06b5b; font-size: 14px; }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 8px; }
+  .tbl th, .tbl td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--line); }
+  .tbl th { color: var(--tx2); font-weight: 500; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 18px 0; }
+  .stats div { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .stats b { display: block; font: 500 28px 'Cormorant Garamond', serif; }
+  .stats span { font-size: 12px; color: var(--tx2); }
+  .preview { position: relative; height: 70vh; min-height: 480px; border-radius: 14px; overflow: hidden; border: 1px solid var(--line); }
+  .buy { display: grid; grid-template-columns: 1.2fr 1fr; gap: 22px; margin-top: 22px; align-items: start; }
+  .buy ul { margin: 0; padding-left: 18px; color: var(--tx2); }
+  .buy li { margin: 4px 0; }
+  .price { border: 1px solid var(--gold); border-radius: 16px; padding: 22px; background: rgba(200,169,106,.06); }
+  .price .big { font: 500 46px/1 'Cormorant Garamond', serif; margin: 8px 0 4px; }
+  .note { font-size: 13px; color: var(--tx2); }
+  .warn { border-left: 3px solid #e0a93b; background: rgba(224,169,59,.08); border-radius: 6px; padding: 10px 14px; font-size: 13.5px; color: #e9d3a6; margin: 12px 0 0; }
+  footer { border-top: 1px solid var(--line); padding: 30px 0 50px; color: var(--tx2); font-size: 14px; }
+  @media (max-width: 860px) { .flow { grid-template-columns: 1fr 1fr; } .buy { grid-template-columns: 1fr; } .demo { height: 72vh; } .top nav .btn:not(.gold) { display: none; } }
+  @media (max-width: 520px) { .flow { grid-template-columns: 1fr; } .panel { padding: 18px 14px; } }
+</style>
+</head>
+<body>
+<header class="top"><div class="w">
+  <a class="logo" href="#"><b>LC</b>LIFE CITY · BIM HUB</a>
+  <nav><a class="btn" href="#demo">Ver el demo</a><a class="btn gold" href="#implementar">Quiero esta implementación</a></nav>
+</div></header>
+
+<div class="w hero">
+  <span class="k">Sala de ventas con renders · demo en vivo</span>
+  <h1>Tu render frontal,<br><em>convertido en sala de ventas</em></h1>
+  <p class="lead">Cada piso del render es un botón. Cada apartamento de la planta muestra su valor y se separa en línea: el comprador paga el 10 % con Wompi y el dinero cae directo a la cuenta de la constructora.</p>
+  <div class="acts"><a class="btn gold" href="#implementar">Hacerla con mis renders</a><a class="btn" href="#demo">Probar como comprador</a></div>
+</div>
+
+<div class="w" id="demo">
+  <div class="demo"><iframe src="sala/index.html" title="Demo: Torre Alborada" loading="lazy"></iframe></div>
+  <div class="demo-bar"><span>Demo: <b style="color:var(--tx)">Torre Alborada</b> · toca un piso, luego un apartamento y sepáralo (en el demo no se cobra).</span>
+    <span><a href="sala/index.html" target="_blank">Pantalla completa ↗</a> · <a href="sala/dashboard.html" target="_blank">Ver el dashboard ↗</a></span></div>
+</div>
+
+<section><div class="w">
+  <span class="k">Lo que vive tu comprador</span>
+  <h2>De la fachada a la <em>separación</em>, sin salir de la página</h2>
+  <div class="flow">
+    <div><b>1</b><h4>Ve el edificio</h4><p>Tu render frontal a pantalla completa. Cada piso se ilumina y dice cuántas unidades quedan.</p></div>
+    <div><b>2</b><h4>Entra al piso</h4><p>La planta arquitectónica con cada apartamento en verde, ámbar o gris según su estado.</p></div>
+    <div><b>3</b><h4>Elige su apto</h4><p>Área, alcobas, baños, render interior, valor y lo que cuesta separarlo.</p></div>
+    <div><b>4</b><h4>Separa con el 10 %</h4><p>Paga en Wompi (PSE, tarjeta, Nequi). El apto queda reservado y el asesor recibe el comprobante.</p></div>
+    <div><b>5</b><h4>Recorre su apto</h4><p>Modelo 3D con la paleta de acabados y las decisiones arquitectónicas del proyecto.</p></div>
+  </div>
+</div></section>
+
+<section id="implementar"><div class="w">
+  <span class="k">Hagamos esta implementación con tu proyecto</span>
+  <h2>Sube tus renders y plantas, <em>mira tu sala antes de pagar</em></h2>
+  <div class="steps" id="steps"></div>
+
+  <!-- 1 · proyecto -->
+  <div class="panel" data-p="0">
+    <h3>Tu proyecto</h3><p class="sub">Con esto armamos la sala y tu dashboard. Todo se guarda en este navegador mientras avanzas.</p>
+    <form id="f-proy" class="fg" autocomplete="on">
+      <label class="f">Nombre del proyecto<input name="proyecto" required placeholder="Torre Alborada"></label>
+      <label class="f">Constructora<input name="empresa" required autocomplete="organization"></label>
+      <label class="f">Ciudad / sector<input name="ciudad" placeholder="Cali · Valle del Lili"></label>
+      <label class="f">Tu nombre<input name="contacto" required autocomplete="name"></label>
+      <label class="f">Correo<input name="correo" type="email" required autocomplete="email"></label>
+      <label class="f">WhatsApp del asesor de ventas<input name="whatsapp" type="tel" required placeholder="573001234567" autocomplete="tel"></label>
+    </form>
+    <div class="nav"><span class="err" data-err></span><button class="btn gold" data-next>Siguiente: renders y plantas →</button></div>
+  </div>
+
+  <!-- 2 · renders y plantas -->
+  <div class="panel" data-p="1">
+    <h3>Render frontal y plantas</h3>
+    <p class="sub"><b>1.</b> Sube el render frontal y marca los pisos (un rectángulo de cubierta a primer piso los divide solos). <b>2.</b> Crea cada planta (tipo, penthouse…), súbela y dibuja los apartamentos con su área y precio base. <b>3.</b> Asigna a cada planta los pisos que la usan.</p>
+    <div id="zonas"></div>
+    <div class="nav"><button class="btn" data-prev>← Atrás</button><span class="err" data-err></span><button class="btn gold" data-next>Siguiente: precios →</button></div>
+  </div>
+
+  <!-- 3 · precios -->
+  <div class="panel" data-p="2">
+    <h3>Precios y separación</h3><p class="sub">El precio base de cada apartamento es el del piso más bajo; cada piso hacia arriba suma el incremento. Después puedes fijar precios uno a uno en el dashboard.</p>
+    <div class="fg">
+      <label class="f">% de separación<input id="p-sep" type="number" min="1" max="100" step="0.5"></label>
+      <label class="f">Incremento por piso (%)<input id="p-inc" type="number" min="0" step="0.1"></label>
+      <label class="f">Moneda<select id="p-mon"><option>COP</option><option>USD</option></select></label>
+    </div>
+    <div class="stats" id="p-stats"></div>
+    <div style="overflow:auto"><table class="tbl" id="p-tbl"></table></div>
+    <div class="nav"><button class="btn" data-prev>← Atrás</button><button class="btn gold" data-next>Siguiente: Wompi →</button></div>
+  </div>
+
+  <!-- 4 · wompi -->
+  <div class="panel" data-p="3">
+    <h3>Wompi de la constructora</h3>
+    <p class="sub">Aquí cae la plata de las separaciones. Lo puedes dejar para después: el dashboard trae la misma pestaña. Las llaves están en <i>comercios.wompi.co → Desarrolladores</i>.</p>
+    <div class="fg">
+      <label class="f">Llave pública<input id="w-pk" placeholder="pub_prod_… o pub_test_…" autocomplete="off"></label>
+      <label class="f">Secreto de integridad<input id="w-int" type="password" placeholder="prod_integrity_…" autocomplete="off"></label>
+    </div>
+    <p class="warn">El secreto de integridad solo permite crear cobros <b>hacia</b> tu cuenta. Aun así, el instalador trae una función de servidor para firmar sin dejarlo en el sitio; las instrucciones vienen en el LEEME.</p>
+    <div class="nav"><button class="btn" data-prev>← Atrás</button><span class="note" id="w-res"></span><button class="btn gold" data-next>Ver mi sala →</button></div>
+  </div>
+
+  <!-- 5 · vista previa y pago -->
+  <div class="panel" data-p="4">
+    <h3>Así queda tu sala</h3><p class="sub">Esta es tu sala real con tus renders. Recórrela como comprador; al pagar descargas el instalador con el sitio y el dashboard.</p>
+    <div class="preview" id="preview"></div>
+    <div class="buy">
+      <div>
+        <span class="k">Qué incluye</span>
+        <ul>
+          <li>Sala de ventas: render frontal → pisos → plantas → apartamentos con valor</li>
+          <li>Separación del <span data-sep>10</span> % en línea con tu Wompi y verificación automática del pago</li>
+          <li>Dashboard: inventario, precios, estados, zonas y llaves de Wompi</li>
+          <li>Recorrido 3D del apartamento: subes el modelo, la paleta de colores y las decisiones arquitectónicas en la página de gracias</li>
+          <li>Instalador .zip listo para Netlify, GitHub Pages o tu hosting</li>
+        </ul>
+      </div>
+      <div class="price">
+        <span class="k">Implementación</span>
+        <div class="big" id="precio"></div>
+        <p class="note">Pago único · descarga inmediata al aprobarse el pago</p>
+        <button class="btn gold" style="width:100%;margin-top:10px" id="pay">Pagar con Wompi</button>
+        <p class="note" id="pay-msg"></p>
+      </div>
+    </div>
+    <div class="nav"><button class="btn" data-prev>← Atrás</button></div>
+  </div>
+</div></section>
+
+<footer><div class="w">Life City BIM Management Hub · Cali, Colombia · <a href="https://wa.me/573173371577" target="_blank">WhatsApp +57 317 337 1577</a> · proyectos@lifecity.com.co</div></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="config.js"></script>
+<script src="sala/showroom.js"></script>
+<script src="sala/editor.js"></script>
+<script src="sala/zonas.js"></script>
+<script src="js/empaquetar.js"></script>
+<script>
+(function () {
+  var C = window.LC_CONFIG, $ = function (id) { return document.getElementById(id); }, esc = SR.esc;
+  var LOCAL = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname); // el pago simulado solo existe en local
+  var S, step = 0, zn = null;
+  var STEPS = ['Proyecto', 'Renders y plantas', 'Precios', 'Wompi', 'Vista previa y pago'];
+  var panels = document.querySelectorAll('.panel');
+
+  LCPack.loadDraft().then(function (d) { S = d.S; init(); });
+
+  function save() { SR.syncUnits(S); LCPack.saveDraft(S); }
+
+  function init() {
+    var f = $('f-proy');
+    ['proyecto', 'empresa', 'ciudad', 'contacto', 'correo', 'whatsapp'].forEach(function (k) { if (S[k]) f.elements[k].value = S[k]; });
+    f.oninput = function () { ['proyecto', 'empresa', 'ciudad', 'contacto', 'correo'].forEach(function (k) { S[k] = f.elements[k].value.trim(); }); S.whatsapp = f.elements.whatsapp.value.replace(/\D/g, ''); save(); };
+    $('p-sep').value = S.separacion; $('p-inc').value = S.incremento; $('p-mon').value = S.moneda || 'COP';
+    $('p-sep').oninput = function () { S.separacion = +this.value || 10; save(); precios(); };
+    $('p-inc').oninput = function () { S.incremento = +this.value || 0; save(); precios(); };
+    $('p-mon').onchange = function () { S.moneda = this.value; save(); precios(); };
+    S.wompi = S.wompi || {};
+    $('w-pk').value = S.wompi.publicKey || ''; $('w-int').value = S.wompi.integrity || '';
+    $('w-pk').oninput = function () { S.wompi.publicKey = this.value.trim(); save(); };
+    $('w-int').oninput = function () { S.wompi.integrity = this.value.trim(); save(); };
+    $('precio').textContent = SR.money(C.precio, C.moneda);
+    document.querySelectorAll('[data-next]').forEach(function (b) { b.onclick = function () { go(step + 1); }; });
+    document.querySelectorAll('[data-prev]').forEach(function (b) { b.onclick = function () { go(step - 1, true); }; });
+    $('pay').onclick = pay;
+    if (!SR.wompi.configured(C.wompi)) {
+      if (LOCAL) { $('pay').textContent = 'Simular pago (modo prueba)'; $('pay-msg').textContent = 'La llave de Wompi de Life City aún no está en config.js: en local este botón simula un pago aprobado.'; }
+      else { $('pay').textContent = 'Solicitar por WhatsApp'; $('pay-msg').textContent = 'Te enviamos el link de pago y activamos tu descarga.'; }
+    }
+    drawSteps(); show(0);
+  }
+
+  function drawSteps() {
+    $('steps').innerHTML = STEPS.map(function (s, i) { return '<button data-i="' + i + '" class="' + (i === step ? 'on' : '') + (i < step ? ' done' : '') + '"><span>Paso ' + (i + 1) + '</span><b>' + s + '</b></button>'; }).join('');
+    $('steps').querySelectorAll('button').forEach(function (b) { b.onclick = function () { var i = +b.dataset.i; go(i, i < step); }; });
+  }
+  function show(i) {
+    step = i; drawSteps();
+    panels.forEach(function (p) { p.classList.toggle('on', +p.dataset.p === i); });
+    if (i === 1 && !zn) zn = SR.zonas($('zonas'), S, { img: LCPack.img, upload: LCPack.upload, onChange: save });
+    if (i === 2) precios();
+    if (i === 4) preview();
+  }
+  function go(i, back) {
+    if (i < 0 || i >= STEPS.length) return;
+    if (!back) for (var k = step; k < i; k++) { var e = check(k); if (e) { panels[k].querySelector('[data-err]').textContent = e; return show(k); } }
+    panels.forEach(function (p) { var e = p.querySelector('[data-err]'); if (e) e.textContent = ''; });
+    if (step === 0 && i > 0) lead();
+    show(i);
+    $('implementar').scrollIntoView({ behavior: 'smooth' });
+  }
+  function check(k) {
+    if (k === 0) { var f = $('f-proy'); if (!f.checkValidity()) { f.reportValidity(); return 'Completa los datos del proyecto.'; } }
+    if (k === 1) {
+      if (!S.fachada || !S.fachada.img) return 'Sube el render frontal.';
+      if (!S.pisos.length) return 'Marca al menos un piso sobre el render.';
+      if (!S.plantas.some(function (p) { return p.img && p.aptos.length; })) return 'Crea una planta, súbela y dibuja sus apartamentos.';
+      var sin = S.pisos.filter(function (p) { return !SR.planta(S, p.planta); });
+      if (sin.length) return sin.length + ' piso(s) sin planta asignada: ' + sin.map(function (p) { return p.nivel; }).join(', ') + '.';
+      if (!S.unidades.some(function (u) { return u.precio > 0; })) return 'Ponle precio base a los apartamentos.';
+    }
+    return '';
+  }
+  /* registra el lead en el CRM de Life City una sola vez por proyecto */
+  function lead() {
+    var key = 'lc:renders:lead:' + SR.slug(S.proyecto);
+    try { if (localStorage.getItem(key)) return; } catch (e) {}
+    import('https://proyectos-lifecity.github.io/crm/lead.js').then(function (m) {
+      return m.guardarLeadBim({ empresa: S.empresa, contacto: S.contacto, correo: S.correo, celular: S.whatsapp, ciudad: S.ciudad, proyecto: S.proyecto, tipo: 'Sala de ventas con renders', origen: 'Landing sala de renders' });
+    }).then(function () { try { localStorage.setItem(key, '1'); } catch (e) {} })
+      .catch(function (e) { console.warn('CRM no disponible:', e); });
+  }
+
+  function precios() {
+    SR.syncUnits(S);
+    var U = S.unidades, cur = S.moneda, tot = U.reduce(function (s, u) { return s + u.precio; }, 0);
+    var sep = U.length ? tot * S.separacion / 100 / U.length : 0;
+    $('p-stats').innerHTML = '<div><b>' + U.length + '</b><span>unidades en ' + S.pisos.length + ' pisos</span></div><div><b>' + SR.money(tot, cur) + '</b><span>valor del inventario</span></div><div><b>' + SR.money(sep, cur) + '</b><span>separación promedio (' + S.separacion + ' %)</span></div>';
+    var niveles = S.pisos.map(function (p) { return +p.nivel; }), lo = Math.min.apply(null, niveles), hi = Math.max.apply(null, niveles);
+    $('p-tbl').innerHTML = '<thead><tr><th>Planta</th><th>Apto</th><th>Área</th><th>Alc / baños</th><th>Precio base</th><th>Piso más alto</th></tr></thead><tbody>' +
+      S.plantas.map(function (pl) {
+        var top = S.pisos.filter(function (p) { return p.planta === pl.id; }).reduce(function (m, p) { return Math.max(m, +p.nivel); }, lo);
+        return pl.aptos.map(function (a) {
+          return '<tr><td>' + esc(pl.nombre) + '</td><td>' + String(a.n).padStart(2, '0') + '</td><td>' + a.area + ' m²</td><td>' + a.alcobas + ' / ' + a.banos + '</td><td>' + SR.money(a.precio, cur) + '</td><td>' + SR.money(a.precio * (1 + (top - lo) * S.incremento / 100), cur) + '</td></tr>';
+        }).join('');
+      }).join('') + '</tbody>';
+    document.querySelectorAll('[data-sep]').forEach(function (e) { e.textContent = S.separacion; });
+  }
+
+  function preview() {
+    SR.syncUnits(S);
+    var P = JSON.parse(JSON.stringify(S));
+    SR.mount($('preview'), P, { img: LCPack.img, onReserve: function () { return Promise.reject(new Error('Vista previa: en tu sitio publicado aquí el comprador pasa a Wompi a pagar la separación.')); } });
+  }
+
+  function pay() {
+    var b = $('pay'), msg = $('pay-msg');
+    save();
+    var ref = 'IMP-' + SR.slug(S.proyecto).toUpperCase().slice(0, 24) + '-' + Date.now().toString(36).toUpperCase();
+    var cents = Math.round(C.precio * 100);
+    var pend = { ref: ref, cents: cents, moneda: C.moneda, t: Date.now() };
+    if (!SR.wompi.configured(C.wompi) && !LOCAL) {
+      window.open('https://wa.me/' + C.whatsapp + '?text=' + encodeURIComponent('Hola Life City, quiero la sala de ventas con renders para ' + S.proyecto + ' (' + S.empresa + '): ' + S.unidades.length + ' unidades en ' + S.pisos.length + ' pisos. ¿Me envían el link de pago?'), '_blank');
+      return;
+    }
+    if (!SR.wompi.configured(C.wompi)) {
+      pend.env = 'demo';
+      localStorage.setItem('lc:renders:pago', JSON.stringify(pend));
+      location.href = 'gracias.html?id=demo';
+      return;
+    }
+    pend.env = SR.wompi.env(C.wompi.publicKey);
+    localStorage.setItem('lc:renders:pago', JSON.stringify(pend));
+    b.disabled = true; msg.textContent = 'Abriendo Wompi…';
+    SR.wompi.checkoutUrl(C.wompi, { reference: ref, amountInCents: cents, currency: C.moneda, redirectUrl: new URL('gracias.html', location.href).href })
+      .then(function (url) { location.href = url; })
+      .catch(function (e) { b.disabled = false; msg.textContent = 'No se pudo abrir el pago: ' + e.message; });
+  }
+})();
+</script>
+</body>
+</html>

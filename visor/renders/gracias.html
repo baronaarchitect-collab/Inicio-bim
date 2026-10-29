@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Tu Sala Lista · Life City</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="sala/showroom.css">
+<style>
+  :root { --bg: #0d0e0c; --bg2: #161814; --line: rgba(241,237,228,.14); --tx: #f1ede4; --tx2: #b9b3a6; --gold: #c8a96a; --green: #3fb67a; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--tx); font: 15px/1.6 Inter, system-ui, sans-serif; }
+  a { color: var(--gold); }
+  .w { max-width: 1180px; margin: 0 auto; padding: 0 16px; }
+  .k { font-size: 11px; letter-spacing: .28em; text-transform: uppercase; color: var(--gold); font-weight: 500; }
+  h1, h2, h3 { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; line-height: 1.05; margin: 0; }
+  h1 { font-size: clamp(38px, 6vw, 68px); } h1 em, h2 em { color: var(--gold); }
+  h2 { font-size: clamp(30px, 4vw, 46px); } h3 { font-size: 24px; margin-bottom: 8px; }
+  .muted { color: var(--tx2); }
+  .btn { display: inline-block; text-decoration: none; border: 1px solid var(--line); background: transparent; color: var(--tx); padding: 11px 20px; border-radius: 999px; font: 500 14px Inter; cursor: pointer; }
+  .btn:hover { border-color: var(--gold); } .btn.gold { background: var(--gold); border-color: var(--gold); color: #17140d; font-weight: 600; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn.sm { padding: 6px 12px; font-size: 12.5px; }
+  .hero { padding: 60px 0 30px; display: grid; grid-template-columns: 1.3fr 1fr; gap: 30px; align-items: center; }
+  .card { background: var(--bg2); border: 1px solid var(--line); border-radius: 16px; padding: 22px; }
+  .spin { width: 30px; height: 30px; border: 3px solid rgba(200,169,106,.25); border-top-color: var(--gold); border-radius: 50%; animation: s 1s linear infinite; }
+  @keyframes s { to { transform: rotate(360deg); } }
+  .ok { color: var(--green); } .bad { color: #e06b5b; }
+  dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 14px 0; font-size: 13.5px; } dt { color: var(--tx2); } dd { margin: 0; text-align: right; word-break: break-all; }
+  section { padding: 50px 0; border-top: 1px solid var(--line); }
+  .rec { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 18px; margin-top: 24px; align-items: start; }
+  #viewer { position: relative; height: 64vh; min-height: 420px; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); background: radial-gradient(#23251f, #0d0e0c); }
+  #viewer canvas { display: block; width: 100%; height: 100%; }
+  .drop { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 30px; color: var(--tx2); cursor: pointer; border: 1.5px dashed rgba(200,169,106,.5); border-radius: 16px; }
+  .drop:hover { background: rgba(200,169,106,.05); } .drop b { color: var(--tx); font-size: 17px; }
+  .vbar { position: absolute; left: 12px; bottom: 12px; display: flex; gap: 6px; flex-wrap: wrap; z-index: 2; }
+  .side { display: grid; gap: 14px; }
+  .side .card { padding: 16px; }
+  .side h4 { margin: 0 0 10px; font: 600 11px Inter; letter-spacing: .2em; text-transform: uppercase; color: var(--gold); }
+  .pal { display: grid; gap: 6px; }
+  .pal .row, .mats .row { display: grid; grid-template-columns: 34px 1fr auto; gap: 8px; align-items: center; }
+  input[type=color] { width: 34px; height: 30px; padding: 0; border: 1px solid var(--line); border-radius: 7px; background: none; cursor: pointer; }
+  .side input:not([type=color]), .side select, .side textarea { font: inherit; font-size: 13px; color: var(--tx); background: var(--bg); border: 1px solid var(--line); border-radius: 7px; padding: 7px 9px; width: 100%; }
+  .side textarea { resize: vertical; min-height: 54px; }
+  .x { background: none; border: 0; color: var(--tx2); cursor: pointer; font-size: 16px; }
+  .mats { display: grid; gap: 6px; max-height: 260px; overflow: auto; }
+  .mats .row { grid-template-columns: 22px 1fr 120px; padding: 4px; border-radius: 8px; }
+  .mats .row.hl { background: rgba(200,169,106,.16); }
+  .mats i { width: 22px; height: 22px; border-radius: 6px; border: 1px solid var(--line); display: block; }
+  .mats span { font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dec { display: grid; gap: 10px; }
+  .dec .it { border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: grid; gap: 6px; }
+  .dec .h { display: grid; grid-template-columns: 1fr auto; gap: 6px; }
+  .final { margin-top: 22px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .help { font-size: 12.5px; color: var(--tx2); margin: 0; }
+  .presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .presets button { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; padding: 0; background: none; cursor: pointer; }
+  .presets button i { width: 14px; height: 24px; display: block; }
+  @media (max-width: 920px) { .hero, .rec { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="w hero">
+  <div>
+    <span class="k">Life City · Sala de ventas con renders</span>
+    <h1 id="h">Verificando<br><em>tu pago…</em></h1>
+    <p class="muted" id="sub">Estamos consultando la transacción en Wompi. No cierres esta página.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px" id="acts"></div>
+  </div>
+  <div class="card" id="pago"><div class="spin"></div></div>
+</div>
+
+<section id="recorrido" hidden><div class="w">
+  <span class="k">Paso final · Recorrido por el apartamento</span>
+  <h2>Sube el modelo 3D, define la <em>paleta</em> y cuenta tus <em>decisiones</em></h2>
+  <p class="muted" style="max-width:760px">El recorrido se une con tu sala de ventas: en cada ficha de apartamento aparece el botón “Recorrer en 3D”, la paleta de acabados y las decisiones arquitectónicas. Haz clic sobre el modelo para elegir un material y pintarlo con tu paleta.</p>
+  <div class="rec">
+    <div>
+      <div id="viewer"><div class="drop" id="drop"><div><b>Arrastra aquí el modelo 3D del apartamento</b><br>GLB / GLTF (recomendado) u OBJ · exporta desde Revit, SketchUp, Rhino o Twinmotion<br><br><span class="btn sm">Elegir archivo</span></div></div></div>
+      <p class="help" style="margin-top:8px" id="vinfo"></p>
+    </div>
+    <div class="side">
+      <div class="card"><h4>Paleta de colores</h4>
+        <div class="presets" id="presets"></div>
+        <div class="pal" id="pal"></div>
+        <button class="btn sm" id="pal-add" style="margin-top:8px">+ Color</button>
+      </div>
+      <div class="card"><h4>Materiales del modelo</h4><div class="mats" id="mats"><p class="help">Sube el modelo para ver sus materiales.</p></div></div>
+    </div>
+  </div>
+  <div class="card side" style="margin-top:18px"><h4>Decisiones arquitectónicas</h4>
+    <div class="dec" id="dec"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn sm" id="dec-add">+ Decisión</button><span class="help" style="align-self:center">Las tres primeras se muestran en la ficha de cada apartamento.</span></div>
+  </div>
+  <div class="final">
+    <button class="btn gold" id="unir">Unir con mi sala y descargar todo</button>
+    <span class="help" id="unir-msg"></span>
+  </div>
+</div></section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/OBJLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/exporters/GLTFExporter.js"></script>
+<script src="config.js"></script>
+<script>document.write('<script src="' + window.LC_CONFIG.kit + '"><\/script>');</script>
+<script src="sala/showroom.js"></script>
+<script src="js/empaquetar.js"></script>
+<script>
+(function () {
+  var C = window.LC_CONFIG, $ = function (id) { return document.getElementById(id); }, esc = SR.esc;
+  var S = null, lastZip = null, PAID = 'lc:renders:pagado';
+  var q = new URLSearchParams(location.search), id = q.get('id');
+  var pend = null; try { pend = JSON.parse(localStorage.getItem('lc:renders:pago') || 'null'); } catch (e) {}
+
+  LCPack.loadDraft().then(function (d) {
+    S = d.S;
+    if (!S.proyecto || !(S.pisos || []).length) return fail('No encontramos tu proyecto en este navegador', 'Abre esta página en el mismo navegador donde subiste los renders. Si pagaste desde otro equipo, escríbenos con el número de transacción' + (id ? ' <b>' + esc(id) + '</b>' : '') + '.');
+    var paid = null; try { paid = JSON.parse(localStorage.getItem(PAID) || 'null'); } catch (e) {}
+    if (id === 'demo' && pend && pend.env === 'demo' && !SR.wompi.configured(C.wompi) && /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) return setTimeout(function () { approved({ id: 'DEMO-' + Date.now(), reference: pend.ref, amount_in_cents: pend.cents, status: 'APPROVED', payment_method_type: 'SIMULADO' }, true); }, 900);
+    if (!id && paid) return approved(paid, false, true);
+    if (!id) return fail('Aún no hay un pago', 'Vuelve a la página de la implementación para pagar. <a href="index.html#implementar">Ir al asistente</a>');
+    var env = q.get('env') === 'test' ? 'test' : q.get('env') === 'prod' ? 'prod' : (pend && pend.env) || SR.wompi.env(C.wompi.publicKey);
+    SR.wompi.poll(id, env, function (t) { $('sub').textContent = 'Estado en Wompi: ' + t.status + '…'; }).then(function (t) {
+      var okAmount = t.amount_in_cents === Math.round(C.precio * 100);
+      var okRef = !pend || pend.ref === t.reference;
+      if (t.status === 'APPROVED' && okAmount && okRef && /^IMP-/.test(t.reference)) return approved(t, false);
+      if (t.status === 'PENDING') return fail('Tu pago sigue en proceso', 'PSE y algunos bancos tardan unos minutos. Recarga esta página en un momento.', t);
+      fail('El pago no se aprobó', 'Estado: <b>' + esc(t.status) + '</b>' + (t.status === 'APPROVED' ? ' — el valor o la referencia no corresponden a esta implementación.' : '. Puedes intentarlo de nuevo desde el asistente.'), t);
+    }).catch(function (e) { fail('No pudimos consultar Wompi', esc(e.message) + '. Guarda el número de transacción <b>' + esc(id) + '</b> y recarga.'); });
+  });
+
+  function txCard(t, cls, label) {
+    $('pago').innerHTML = '<span class="k ' + cls + '">' + label + '</span><dl>' +
+      '<dt>Proyecto</dt><dd>' + esc(S && S.proyecto) + '</dd>' +
+      (t ? '<dt>Valor</dt><dd>' + SR.money(t.amount_in_cents / 100, C.moneda) + '</dd><dt>Referencia</dt><dd>' + esc(t.reference) + '</dd><dt>Transacción</dt><dd>' + esc(t.id) + '</dd>' + (t.payment_method_type ? '<dt>Medio</dt><dd>' + esc(t.payment_method_type) + '</dd>' : '') : '') + '</dl>';
+  }
+  function fail(h, sub, t) {
+    $('h').innerHTML = esc(h); $('sub').innerHTML = sub; txCard(t, 'bad', 'Sin confirmar');
+    $('acts').innerHTML = '<a class="btn" href="index.html#implementar">Volver al asistente</a><a class="btn" target="_blank" href="https://wa.me/' + C.whatsapp + '?text=' + encodeURIComponent('Hola Life City, tengo una duda con el pago de la sala de renders' + (id ? ' (transacción ' + id + ')' : '')) + '">Escribir por WhatsApp</a>';
+  }
+
+  function approved(t, demo, again) {
+    try { localStorage.setItem(PAID, JSON.stringify({ id: t.id, reference: t.reference, amount_in_cents: t.amount_in_cents, status: t.status, payment_method_type: t.payment_method_type })); localStorage.removeItem('lc:renders:pago'); } catch (e) {}
+    $('h').innerHTML = again ? 'Tu sala de <em>' + esc(S.proyecto) + '</em>' : '¡Pago aprobado!<br><em>Tu sala está lista</em>';
+    $('sub').innerHTML = (again ? '' : 'La descarga del instalador empezó sola. ') + 'Ábrelo, entra a <b>ABRIR-DASHBOARD.html</b> y sigue el LEEME para publicarla. Abajo creas el recorrido 3D del apartamento.' + (demo ? '<br><span class="note">Pago simulado: falta poner la llave de Wompi en config.js.</span>' : '');
+    txCard(t, 'ok', demo ? 'Pago simulado' : 'Pago aprobado');
+    $('acts').innerHTML = '<button class="btn gold" id="dl">Descargar instalador</button><a class="btn" href="#recorrido">Crear el recorrido 3D ↓</a>';
+    $('dl').onclick = function () { pack().then(LCPack.download); };
+    $('recorrido').hidden = false;
+    recorrido();
+    if (!again) pack().then(LCPack.download).catch(function (e) { $('sub').innerHTML += '<br><span class="bad">No se pudo armar el ZIP: ' + esc(e.message) + '</span>'; });
+  }
+  function pack() {
+    $('dl') && ($('dl').disabled = true);
+    return LCPack.build(S, { recorridoZip: lastZip }).then(function (r) { $('dl') && ($('dl').disabled = false); return r; });
+  }
+
+  /* ---------------- recorrido 3D ---------------- */
+  var R = null;
+  function recorrido() {
+    if (R) return; R = {};
+    S.recorrido = S.recorrido || {};
+    var pal = S.recorrido.paleta || [{ nombre: 'Muros', hex: '#EFE7DA' }, { nombre: 'Piso', hex: '#A77C55' }, { nombre: 'Carpintería', hex: '#2F2924' }, { nombre: 'Acento', hex: '#56844A' }];
+    var dec = S.recorrido.decisiones || [{ cat: 'Interior', titulo: '', texto: '' }];
+    var PRESETS = {
+      'Cálido natural': ['#EFE7DA', '#A77C55', '#2F2924', '#56844A', '#CFC3AD'],
+      'Mediterráneo': ['#F4F1EA', '#C9B79C', '#2E5E7E', '#D98E5F', '#8FA58A'],
+      'Nórdico': ['#F5F5F2', '#D9D4CC', '#8C8C88', '#3A3A3A', '#C2A278'],
+      'Industrial': ['#D7D3CC', '#6E6A64', '#2B2B2B', '#9C5B3B', '#B8B0A2']
+    };
+    var CATS = ['Fachada', 'Interior', 'Materiales', 'Estructura', 'Sostenibilidad', 'Paisajismo', 'Iluminación'];
+    function persist() { S.recorrido.paleta = pal; S.recorrido.decisiones = dec.filter(function (d) { return d.titulo || d.texto; }); LCPack.saveDraft(S); }
+
+    $('presets').innerHTML = Object.keys(PRESETS).map(function (k) { return '<button title="' + k + '" data-k="' + k + '">' + PRESETS[k].map(function (c) { return '<i style="background:' + c + '"></i>'; }).join('') + '</button>'; }).join('');
+    $('presets').onclick = function (e) {
+      var b = e.target.closest('button'); if (!b) return;
+      var cs = PRESETS[b.dataset.k], names = ['Muros', 'Piso', 'Carpintería', 'Acento', 'Cerámica'];
+      pal = cs.map(function (c, i) { return { nombre: (pal[i] && pal[i].nombre) || names[i], hex: c }; }); drawPal(); applyAll(); persist();
+    };
+    function drawPal() {
+      $('pal').innerHTML = pal.map(function (c, i) { return '<div class="row"><input type="color" data-i="' + i + '" value="' + esc(c.hex) + '"><input data-n="' + i + '" value="' + esc(c.nombre) + '" placeholder="Nombre"><button class="x" data-del="' + i + '" title="Quitar">✕</button></div>'; }).join('');
+      drawMats();
+    }
+    $('pal').oninput = function (e) {
+      var t = e.target;
+      if (t.dataset.i != null) { pal[+t.dataset.i].hex = t.value.toUpperCase(); applyAll(); }
+      if (t.dataset.n != null) { pal[+t.dataset.n].nombre = t.value; drawMats(); }
+      persist();
+    };
+    $('pal').onclick = function (e) { var d = e.target.dataset.del; if (d != null) { pal.splice(+d, 1); drawPal(); persist(); } };
+    $('pal-add').onclick = function () { pal.push({ nombre: 'Color ' + (pal.length + 1), hex: '#C8A96A' }); drawPal(); persist(); };
+
+    function drawDec() {
+      $('dec').innerHTML = dec.map(function (d, i) {
+        return '<div class="it"><div class="h"><select data-f="cat" data-i="' + i + '">' + CATS.map(function (c) { return '<option' + (c === d.cat ? ' selected' : '') + '>' + c + '</option>'; }).join('') + '</select><button class="x" data-del="' + i + '">✕</button></div>' +
+          '<input data-f="titulo" data-i="' + i + '" value="' + esc(d.titulo) + '" placeholder="Ej.: Ventanería de piso a techo">' +
+          '<textarea data-f="texto" data-i="' + i + '" placeholder="Por qué la tomaste y qué gana el comprador">' + esc(d.texto) + '</textarea></div>';
+      }).join('');
+    }
+    $('dec').oninput = $('dec').onchange = function (e) { var t = e.target; if (t.dataset.f) { dec[+t.dataset.i][t.dataset.f] = t.value; persist(); } };
+    $('dec').onclick = function (e) { var d = e.target.dataset.del; if (d != null) { dec.splice(+d, 1); drawDec(); persist(); } };
+    $('dec-add').onclick = function () { dec.push({ cat: 'Interior', titulo: '', texto: '' }); drawDec(); };
+    drawDec();
+
+    /* visor */
+    var V = {}, mats = [], assign = {}, picked = null;
+    function initViewer() {
+      if (V.renderer) return;
+      var el = $('viewer');
+      V.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+      V.renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1));
+      V.renderer.outputEncoding = THREE.sRGBEncoding;
+      el.appendChild(V.renderer.domElement);
+      V.scene = new THREE.Scene();
+      V.cam = new THREE.PerspectiveCamera(50, 1, 0.05, 5000);
+      V.scene.add(new THREE.HemisphereLight(0xfff6e8, 0x3a3428, 0.9));
+      var sun = new THREE.DirectionalLight(0xffffff, 0.8); sun.position.set(5, 10, 7); V.scene.add(sun);
+      V.ctl = new THREE.OrbitControls(V.cam, V.renderer.domElement); V.ctl.enableDamping = true;
+      function size() { var w = el.clientWidth, h = el.clientHeight; V.renderer.setSize(w, h, false); V.cam.aspect = w / h; V.cam.updateProjectionMatrix(); }
+      new ResizeObserver(size).observe(el); size();
+      (function loop() { requestAnimationFrame(loop); V.ctl.update(); V.renderer.render(V.scene, V.cam); })();
+      var ray = new THREE.Raycaster(), m = new THREE.Vector2(), downAt = null;
+      V.renderer.domElement.addEventListener('pointerdown', function (e) { downAt = [e.clientX, e.clientY]; });
+      V.renderer.domElement.addEventListener('pointerup', function (e) {
+        if (!V.root || !downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 4) return;
+        var r = V.renderer.domElement.getBoundingClientRect();
+        m.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+        ray.setFromCamera(m, V.cam);
+        var hit = ray.intersectObject(V.root, true)[0];
+        if (hit) { var mt = Array.isArray(hit.object.material) ? hit.object.material[hit.face.materialIndex || 0] : hit.object.material; picked = mats.indexOf(mt); drawMats(); var row = document.querySelector('.mats .row.hl'); row && row.scrollIntoView({ block: 'nearest' }); }
+      });
+      var bar = document.createElement('div'); bar.className = 'vbar';
+      bar.innerHTML = '<button class="btn sm" data-v="iso">Vista general</button><button class="btn sm" data-v="top">Planta</button><button class="btn sm" data-v="eye">Altura de ojos</button><button class="btn sm" data-v="new">Cambiar modelo</button>';
+      bar.onclick = function (e) { var v = e.target.dataset.v; if (v === 'new') pickFile(); else if (v) frame(v); };
+      el.appendChild(bar);
+    }
+    function frame(mode) {
+      var box = new THREE.Box3().setFromObject(V.root), c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3()), d = Math.max(s.x, s.y, s.z);
+      V.ctl.target.copy(c);
+      if (mode === 'top') V.cam.position.set(c.x, c.y + d * 1.6, c.z + 0.001);
+      else if (mode === 'eye') { V.ctl.target.set(c.x + s.x * 0.2, box.min.y + 1.6, c.z); V.cam.position.set(c.x - s.x * 0.3, box.min.y + 1.6, c.z + s.z * 0.25); }
+      else V.cam.position.set(c.x + d * 0.9, c.y + d * 0.8, c.z + d * 0.9);
+      V.cam.near = d / 1000; V.cam.far = d * 20; V.cam.updateProjectionMatrix();
+    }
+    function pickFile() { var i = document.createElement('input'); i.type = 'file'; i.accept = '.glb,.gltf,.obj'; i.onchange = function () { if (i.files[0]) load(i.files[0]); }; i.click(); }
+    $('drop').onclick = pickFile;
+    $('viewer').ondragover = function (e) { e.preventDefault(); };
+    $('viewer').ondrop = function (e) { e.preventDefault(); var f = e.dataTransfer.files[0]; if (f) load(f); };
+
+    function load(file) {
+      var ext = file.name.split('.').pop().toLowerCase();
+      if (['glb', 'gltf', 'obj'].indexOf(ext) < 0) { $('vinfo').textContent = 'Formato no soportado. Usa GLB, GLTF u OBJ.'; return; }
+      $('vinfo').textContent = 'Cargando ' + file.name + '…';
+      initViewer();
+      var url = URL.createObjectURL(file);
+      var done = function (obj) {
+        if (V.root) V.scene.remove(V.root);
+        V.root = obj; V.scene.add(obj);
+        var box = new THREE.Box3().setFromObject(obj), s = box.getSize(new THREE.Vector3());
+        if (Math.max(s.x, s.y, s.z) > 300) { obj.scale.setScalar(0.001); } // modelos exportados en milímetros
+        // Revit/SketchUp suelen exportar con Z arriba en OBJ: si es más alto que ancho y largo, se gira
+        if (ext === 'obj' && s.z > s.y * 1.5 && s.z > 2) obj.rotation.x = -Math.PI / 2;
+        mats = []; obj.traverse(function (o) {
+          if (!o.isMesh) return;
+          (Array.isArray(o.material) ? o.material : [o.material]).forEach(function (m) { if (mats.indexOf(m) < 0) { if (!m.name) m.name = 'Material ' + (mats.length + 1); if (m.color) m.userData.orig = '#' + m.color.getHexString(); mats.push(m); } });
+        });
+        R.file = file; R.ext = ext; assign = S.recorrido.asignacion || {};
+        $('drop').style.display = 'none';
+        $('vinfo').textContent = file.name + ' · ' + mats.length + ' materiales · clic en el modelo para elegir un material.';
+        applyAll(); drawMats(); frame('iso');
+      };
+      var err = function (e) { $('vinfo').textContent = 'No se pudo leer el modelo: ' + (e && e.message || e); };
+      if (ext === 'obj') new THREE.OBJLoader().load(url, done, null, err);
+      else new THREE.GLTFLoader().load(url, function (g) { done(g.scene); }, null, err);
+    }
+    function applyAll() {
+      mats.forEach(function (m) {
+        var a = assign[m.name]; if (a == null) return;
+        var hex = a.charAt(0) === '#' ? a : (pal[+a] || {}).hex;
+        if (hex && m.color) { m.color.set(hex); if (m.map) { m.map = null; m.needsUpdate = true; } }
+      });
+    }
+    function drawMats() {
+      if (!mats.length) return;
+      $('mats').innerHTML = mats.map(function (m, i) {
+        var a = assign[m.name], col = m.color ? '#' + m.color.getHexString() : '#888';
+        return '<div class="row' + (i === picked ? ' hl' : '') + '" data-i="' + i + '"><i style="background:' + col + '"></i><span title="' + esc(m.name) + '">' + esc(m.name) + '</span><select data-m="' + i + '"><option value="">Original</option>' +
+          pal.map(function (c, j) { return '<option value="' + j + '"' + (String(a) === String(j) ? ' selected' : '') + '>' + esc(c.nombre) + '</option>'; }).join('') + '</select></div>';
+      }).join('');
+    }
+    $('mats').onchange = function (e) {
+      var i = e.target.dataset.m; if (i == null) return;
+      var m = mats[+i];
+      if (e.target.value === '') delete assign[m.name]; else assign[m.name] = e.target.value;
+      if (e.target.value === '' && m.userData.orig) m.color.set(m.userData.orig);
+      S.recorrido.asignacion = assign; applyAll(); drawMats(); persist();
+    };
+    $('mats').onmouseover = function (e) { var r = e.target.closest('.row'); if (!r) return; var m = mats[+r.dataset.i]; if (m && m.emissive) { mats.forEach(function (x) { x.emissive && x.emissive.setHex(0); }); m.emissive.setHex(0x332200); } };
+    $('mats').onmouseleave = function () { mats.forEach(function (x) { x.emissive && x.emissive.setHex(0); }); };
+
+    drawPal();
+
+    /* unir con la sala */
+    $('unir').onclick = function () {
+      var b = this, msg = $('unir-msg'); b.disabled = true; persist();
+      msg.textContent = 'Preparando el recorrido…';
+      mats.forEach(function (x) { x.emissive && x.emissive.setHex(0); });
+      exportModel().then(function (model) {
+        var pedido = LCPack.pedidoKit(S);
+        var hasKit = !!window.LCKit;
+        var kitJob = hasKit ? Promise.resolve(window.LCKit.save(pedido, model ? new File([model.blob], model.name) : null)).then(function () { return window.LCKit.buildZip(pedido, model); }) : Promise.resolve(null);
+        return kitJob.then(function (kz) {
+          lastZip = kz ? kz.blob : null;
+          S.recorrido.url = lastZip ? 'recorrido/sitio/index.html' : '';
+          LCPack.saveDraft(S);
+          msg.textContent = 'Armando el instalador…';
+          return LCPack.build(S, { recorridoZip: lastZip });
+        }).then(function (r) {
+          LCPack.download(r);
+          b.disabled = false;
+          msg.innerHTML = '✓ Listo: <b>' + esc(r.filename) + '</b> trae la sala, el dashboard y el recorrido unidos.' + (hasKit ? ' También quedó en el <a target="_blank" href="' + esc(C.implementacionLista) + '">kit de la sala virtual 3D ↗</a> (mismo navegador).' : ' El kit 3D de Life City no cargó: se guardaron la paleta y las decisiones.');
+        });
+      }).catch(function (e) { b.disabled = false; msg.textContent = 'Error: ' + e.message; });
+    };
+    function exportModel() {
+      if (!V.root) return Promise.resolve(null);
+      return new Promise(function (res, rej) {
+        new THREE.GLTFExporter().parse(V.root, function (glb) { res({ name: 'recorrido.glb', blob: new Blob([glb], { type: 'model/gltf-binary' }) }); }, function (e) { rej(e); }, { binary: true });
+      });
+    }
+  }
+})();
+</script>
+</body>
+</html>

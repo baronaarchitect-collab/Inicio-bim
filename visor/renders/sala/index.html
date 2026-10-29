@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sala de ventas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="showroom.css">
+<style>html,body{margin:0;height:100%;background:#0d0e0c}#app{position:fixed;inset:0}</style>
+</head>
+<body>
+<div id="app" tabindex="-1"></div>
+<script src="datos.js"></script>
+<script src="showroom.js"></script>
+<script>
+(function () {
+  var S = SR.overlay.apply(window.SALA || {});
+  if (!(S.unidades || []).length) SR.syncUnits(S);
+  document.title = (S.proyecto || 'Sala de ventas') + ' · Sala de ventas';
+  var opts = { graciasUrl: 'gracias.html' };
+  // demo sin pasarela: simula el pago para mostrar el flujo completo
+  if (S.demo && !SR.wompi.configured(S.wompi)) opts.onReserve = function (S, u, cliente) {
+    var ref = 'SEP-DEMO-' + u.id + '-' + Date.now().toString(36).toUpperCase();
+    try { localStorage.setItem('sr:pendiente:' + SR.slug(S.proyecto), JSON.stringify({ ref: ref, unidad: u.id, cents: SR.sepValue(S, u) * 100, moneda: S.moneda || 'COP', cliente: cliente, env: 'demo', t: Date.now() })); } catch (e) {}
+    location.href = 'gracias.html?id=demo&ref=' + encodeURIComponent(ref);
+    return Promise.resolve();
+  };
+  SR.mount(document.getElementById('app'), S, opts);
+})();
+</script>
+</body>
+</html>
