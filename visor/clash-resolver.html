@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Clash Resolver Life City</title>
+<meta name="description" content="Prueba el flujo del coordinador BIM en el Clash Resolver de Life City: detecta, asigna, revisa y aprueba interferencias como misiones. Compra el MCP, la app, los plugins de Revit y el plugin de BIM Vision.">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="icon" href="../icons/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: página de venta oscura de marca. Hero → demo interactiva (visor SVG + panel del coordinador + HUD) → productos → preguntas → pie. */
+:root{
+  --bg:#0a110d; --band:#0f1a13; --surface:#132117; --surface2:#182a1d; --line:#24382a;
+  --fg:#eef4ef; --soft:#c9dccd; --muted:#88a890;
+  --green:#3d7a4e; --green-lt:#5fae74; --gold:#d4ae5a; --clash:#ff5a4e;
+  --hid:#4fa3d9; --est:#8b9a90; --ele:#d8d27a; --hvac:#e39a3b;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.5;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);font-weight:800;margin:0;text-wrap:balance;text-transform:uppercase}
+h1{font-size:clamp(42px,7.4vw,80px);line-height:.92}
+h1 em{font-style:normal;color:var(--gold)}
+h2{font-size:clamp(30px,4.6vw,46px);line-height:1}
+h3{font-size:21px;line-height:1.1;letter-spacing:.02em}
+p{margin:0}
+.kicker{font:600 12px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--green-lt)}
+.lede{font-size:18.5px;color:var(--soft);max-width:60ch}
+a{color:inherit}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--gold);color:#16130a;font:800 18px var(--display);letter-spacing:.06em;text-transform:uppercase;padding:12px 20px;border-radius:4px;text-decoration:none;border:0;cursor:pointer}
+.btn:hover{background:#e4c272}
+.btn.ghost{background:transparent;color:var(--fg);border:1.5px solid var(--line)}
+.btn.ghost:hover{border-color:var(--green-lt)}
+.btn.green{background:var(--green);color:#fff}
+.btn.green:hover{background:var(--green-lt)}
+.btn.sm{font-size:15px;padding:8px 12px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+/* top */
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding-block:18px}
+.logo{display:flex;align-items:center;gap:10px;font:800 18px var(--display);letter-spacing:.12em;text-transform:uppercase;text-decoration:none}
+.logo i{width:30px;height:30px;border:2px solid var(--gold);display:grid;place-items:center;font-style:normal;color:var(--gold);font-size:15px}
+.nav{display:flex;gap:14px;font:600 14px var(--body);flex-wrap:wrap}
+.nav a{text-decoration:none;color:var(--soft)}
+.hero{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:28px;align-items:center;padding-block:18px 36px}
+.hero .copy{display:flex;flex-direction:column;gap:16px;min-width:0}
+.ctas{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.facts div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;min-width:0}
+.facts b{display:block;font:800 30px/1 var(--display);color:var(--gold)}
+.facts span{font-size:13.5px;color:var(--muted)}
+/* demo */
+.demo{background:var(--band);border-block:1px solid var(--line);padding-block:40px}
+.demo-h{display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
+.steps{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.steps span{font:600 12.5px var(--mono);padding:6px 10px;border-radius:99px;background:var(--surface);color:var(--muted);border:1px solid var(--line)}
+.steps span[data-on="true"]{background:var(--gold);color:#16130a;border-color:var(--gold)}
+.steps span[data-done="true"]{background:#1d3a25;color:var(--green-lt);border-color:#1d3a25}
+.app{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:14px;align-items:start}
+.viewer{background:radial-gradient(120% 90% at 60% 40%,#1a3021 0%,#0b140e 70%);border:1px solid var(--line);border-radius:10px;overflow:hidden;position:relative;min-width:0}
+.viewer svg{display:block;width:100%;height:auto}
+.vbar{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:10px 12px;border-top:1px solid var(--line);font:500 12px var(--mono);color:var(--muted)}
+.vbar b{color:var(--fg);font-weight:600}
+.side{display:flex;flex-direction:column;gap:12px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.hud-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.lvl{font:800 17px var(--display);letter-spacing:.08em;text-transform:uppercase}
+.lvl small{display:block;font:500 11px var(--mono);color:var(--muted);letter-spacing:.1em}
+.pts{font:700 24px var(--mono);color:var(--gold);font-variant-numeric:tabular-nums}
+.xp{height:8px;background:#1b2a1f;border-radius:99px;overflow:hidden}
+.xp i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--green-lt),var(--gold));transition:width .4s}
+.xpl{display:flex;justify-content:space-between;font:500 11.5px var(--mono);color:var(--muted)}
+.panel h3{font-size:19px}
+.panel p{font-size:14.5px;color:var(--soft)}
+.opt{display:flex;flex-direction:column;gap:6px}
+.opt button{text-align:left;background:var(--surface2);color:var(--fg);border:1.5px solid var(--line);border-radius:8px;padding:10px 12px;font:600 14.5px var(--body);cursor:pointer}
+.opt button:hover{border-color:var(--green-lt)}
+.opt button small{display:block;font-weight:400;color:var(--muted);font-size:12.5px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.disc{display:flex;flex-wrap:wrap;gap:6px}
+.disc span{font:600 12px var(--mono);border-radius:4px;padding:4px 8px;border:1px solid var(--line);color:var(--muted)}
+.disc span.on{color:#0a110d}
+.list{display:flex;flex-direction:column;gap:6px;max-height:330px;overflow-y:auto}
+.cl{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;background:var(--surface2);border:1.5px solid var(--line);border-radius:8px;padding:9px 10px;cursor:pointer;color:var(--fg);font:inherit;text-align:left;width:100%}
+.cl[aria-pressed="true"]{border-color:var(--gold)}
+.cl .ic{width:28px;height:28px;border-radius:6px;display:grid;place-items:center;font:700 12px var(--mono)}
+.cl b{display:block;font-size:13.5px;line-height:1.25}
+.cl small{color:var(--muted);font-size:12px}
+.chip{font:600 11px var(--mono);padding:3px 7px;border-radius:4px;white-space:nowrap}
+.s-nueva{background:#3b1714;color:var(--clash)}
+.s-asignada,.s-propuesta{background:#33290f;color:var(--gold)}
+.s-aprobada{background:#1d3a25;color:var(--green-lt)}
+.log{font:500 12px/1.5 var(--mono);color:var(--soft);display:flex;flex-direction:column;gap:3px;max-height:150px;overflow-y:auto}
+.log .ok{color:var(--green-lt)}.log .bad{color:var(--clash)}.log .info{color:var(--muted)}
+.board{display:flex;flex-direction:column;gap:6px}
+.board .r{display:grid;grid-template-columns:minmax(0,1fr) 90px 48px;gap:8px;align-items:center;font-size:13px}
+.board .bar{height:6px;background:#1b2a1f;border-radius:99px;overflow:hidden}
+.board .bar i{display:block;height:100%;background:var(--green-lt);transition:width .4s}
+.board .r span:last-child{font:600 12px var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+.report{width:100%;border-collapse:collapse;font-size:13px}
+.report th,.report td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.report th{font:600 11px var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.tablewrap{overflow-x:auto}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:700;font-size:14px;z-index:30;max-width:calc(100% - 32px)}
+/* productos */
+.sec{padding-block:44px;display:flex;flex-direction:column;gap:18px}
+.prods{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.prod{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.prod svg{width:42px;height:42px}
+.prod .tag{font:600 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--green-lt)}
+.prod ul{margin:0;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--soft)}
+.prod li::before{content:"✓ ";color:var(--green-lt);font-weight:700}
+.prod .btn{margin-top:auto}
+.bundle{background:var(--gold);color:#16130a;border-radius:12px;padding:22px;display:grid;grid-template-columns:minmax(0,1.3fr) auto;gap:18px;align-items:center}
+.bundle h2{color:#16130a}
+.bundle p{font-size:16.5px;max-width:58ch}
+.bundle .btn{background:#0a110d;color:var(--gold)}
+.bundle .btn:hover{background:#1a2a1f}
+.faq{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.faq details{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.faq summary{font-weight:700;cursor:pointer}
+.faq p{margin-top:8px;color:var(--soft);font-size:14.5px}
+footer{border-top:1px solid var(--line);padding-block:22px;display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:space-between;font-size:13.5px;color:var(--muted)}
+@keyframes pulse{0%{r:14;opacity:.9}100%{r:42;opacity:0}}
+.ring{animation:pulse 1.8s ease-out infinite}
+@media (prefers-reduced-motion:reduce){.ring{animation:none}.xp i,.board .bar i{transition:none}html{scroll-behavior:auto}}
+@media (max-width:960px){.prods{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:860px){.hero,.app{grid-template-columns:minmax(0,1fr)}.bundle{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:560px){.prods,.faq,.facts{grid-template-columns:minmax(0,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="logo" href="https://www.lifecity.com.co/coordinacion-bim/" target="_blank" rel="noopener"><i>LC</i>Life City · BIM Hub</a>
+    <nav class="nav"><a href="#demo">Demo</a><a href="#comprar">Productos</a><a href="#preguntas">Preguntas</a></nav>
+  </header>
+
+  <section class="hero">
+    <div class="copy">
+      <span class="kicker">Clash Resolver · MCP Life City para Revit</span>
+      <h1>Coordina las interferencias <em>como en un juego</em></h1>
+      <p class="lede">Pruébalo aquí mismo como coordinador: carga el modelo federado, corre la detección, asigna cada choque como misión, revisa la propuesta del modelador y apruébala para sumar puntos. Cuando todo esté aprobado, liberas el modelo.</p>
+      <div class="ctas"><a class="btn" href="#demo">Probar la demo ↓</a><a class="btn ghost" href="#comprar">Ver productos</a></div>
+    </div>
+    <div class="facts">
+      <div><b>5 mm</b><span>tolerancia de detección entre disciplinas</span></div>
+      <div><b>4</b><span>pasos del coordinador: detectar, asignar, revisar, aprobar</span></div>
+      <div><b>Revit</b><span>las propuestas se modelan con el MCP y los plugins Life City</span></div>
+      <div><b>IFC</b><span>revisión del modelo en BIM Vision con el plugin Life City</span></div>
+    </div>
+  </section>
+</div>
+
+<section class="demo" id="demo">
+  <div class="wrap">
+    <div class="demo-h">
+      <span class="kicker">Demo interactiva · eres el coordinador BIM</span>
+      <h2>Torre D · Piso 3 a 5</h2>
+      <p class="lede" style="font-size:16.5px">Datos de ejemplo. Toca los botones del panel derecho para avanzar.</p>
+    </div>
+    <div class="steps" id="steps"><span>1 · Cargar modelo</span><span>2 · Detectar</span><span>3 · Resolver misiones</span><span>4 · Liberar modelo</span></div>
+    <div class="app">
+      <div class="viewer">
+        <svg id="scene" viewBox="0 0 760 420" role="img" aria-label="Visor del modelo"></svg>
+        <div class="vbar"><span id="vinfo">Modelo sin cargar</span><span id="vsel"></span></div>
+      </div>
+      <div class="side">
+        <div class="card">
+          <div class="hud-top"><div class="lvl" id="lvl">Nivel 1 · Coordinador<small id="lvls">0 de 5 misiones aprobadas</small></div><div class="pts" id="pts">0 pts</div></div>
+          <div class="xp"><i id="xp"></i></div>
+          <div class="xpl"><span id="xpl">Siguiente nivel a 150 pts</span><span id="pct">0 %</span></div>
+        </div>
+        <div class="card panel" id="panel" aria-live="polite"></div>
+        <div class="card"><b style="font-size:14px">Bitácora</b><div class="log" id="log"></div></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <b style="font-size:14px">Puntos por disciplina</b>
+      <div class="board" id="board"></div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+  <section class="sec" id="comprar">
+    <span class="kicker">Llévalo a tus proyectos</span>
+    <h2>Todo lo que usaste en la demo</h2>
+    <p class="lede">Cada pieza se compra por separado, o en el pack completo. Pago seguro y acceso inmediato en Hotmart.</p>
+    <div class="prods" id="prods"></div>
+    <div class="bundle">
+      <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+        <span class="kicker" style="color:#3d3418">Pack completo</span>
+        <h2>MCP + App + Plugins de Revit + Plugin BIM Vision</h2>
+        <p>El flujo completo del coordinador: detectas en el visor, resuelves en Revit con Claude y revisas el IFC en BIM Vision.</p>
+      </div>
+      <a class="btn" id="buy-pack" href="#" target="_blank" rel="noopener">Comprar el pack ↗</a>
+    </div>
+  </section>
+
+  <section class="sec" id="preguntas" style="padding-top:0">
+    <span class="kicker">Preguntas</span>
+    <h2>Antes de comprar</h2>
+    <div class="faq">
+      <details><summary>¿Qué es el MCP Life City?</summary><p>Un conector que deja a Claude leer y modificar tu modelo abierto en Revit: inspeccionar, mover tuberías, crear codos, etiquetar y generar tablas por instrucción.</p></details>
+      <details><summary>¿Qué hace la app Clash Resolver?</summary><p>Convierte cada interferencia en una misión con responsable, propuesta, aprobación y puntos. Es el flujo que acabas de probar.</p></details>
+      <details><summary>¿Qué traen los plugins de Revit?</summary><p>Rutinas de Life City para coordinación MEP: codos de 90° a doble 45°, conexión de ramales con Yee, bajantes por baño, conectores de equipos y documentación de planos.</p></details>
+      <details><summary>¿Para qué sirve el plugin de BIM Vision?</summary><p>Para revisar el modelo IFC coordinado en BIM Vision con las interferencias y su estado, sin abrir Revit.</p></details>
+      <details><summary>¿Necesito Revit?</summary><p>Para el MCP y los plugins de Revit, sí. La app y el plugin de BIM Vision trabajan sobre el modelo IFC.</p></details>
+      <details><summary>¿Y si prefiero que lo coordinen por mí?</summary><p>Life City ofrece Coordinación BIM Total: escríbenos al WhatsApp +57 317 337 1577.</p></details>
+    </div>
+  </section>
+
+  <footer><span>Life City BIM Management Hub · Cali, Colombia</span><span>WhatsApp +57 317 337 1577 · proyectos@lifecity.com.co</span></footer>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* ===== CONFIGURACIÓN: links de compra (cámbialos por el link de Hotmart de cada producto) ===== */
+var BUY = {
+  mcp:     'https://pay.hotmart.com/N107919282R',
+  app:     'https://pay.hotmart.com/N107919282R',
+  revit:   'https://pay.hotmart.com/N107919282R',
+  bimv:    'https://pay.hotmart.com/N107919282R',
+  pack:    'https://pay.hotmart.com/N107919282R'
+};
+/* ============================================================================================ */
+
+var PRODUCTS = [
+  {k:'mcp', tag:'Conector', n:'MCP Life City para Revit', b:['Claude trabaja dentro de tu Revit','Inspecciona, modela y etiqueta por instrucción','Varios modelos abiertos a la vez'], icon:'<path d="M8 20h10M24 20h10M18 12v16h6V12z" stroke="#d4ae5a" stroke-width="2.6" fill="none" stroke-linejoin="round"/>'},
+  {k:'app', tag:'App', n:'Clash Resolver', b:['Interferencias como misiones','Responsable, propuesta y aprobación','Puntos por disciplina e informe'], icon:'<rect x="4" y="11" width="34" height="20" rx="10" stroke="#5fae74" stroke-width="2.6" fill="none"/><path d="M12 17v8M8 21h8" stroke="#5fae74" stroke-width="2.6"/><circle cx="28" cy="18" r="2" fill="#5fae74"/><circle cx="31" cy="24" r="2" fill="#5fae74"/>'},
+  {k:'revit', tag:'Plugins', n:'Plugins de Revit', b:['Codos 90° a doble 45°','Ramales con Yee y bajantes por baño','Conectores de equipos y planos MEP'], icon:'<path d="M6 34 30 10l6 6-24 24H6z" stroke="#4fa3d9" stroke-width="2.6" fill="none" stroke-linejoin="round"/><path d="M14 26l3 3M19 21l3 3M24 16l3 3" stroke="#4fa3d9" stroke-width="2.6"/>'},
+  {k:'bimv', tag:'Plugin', n:'Plugin BIM Vision', b:['Revisa el IFC coordinado','Interferencias y estado en el modelo','Sin abrir Revit'], icon:'<path d="M21 6 36 14v16L21 38 6 30V14z" stroke="#e39a3b" stroke-width="2.6" fill="none" stroke-linejoin="round"/><circle cx="21" cy="22" r="5" stroke="#e39a3b" stroke-width="2.6" fill="none"/>'}
+];
+document.getElementById('prods').innerHTML = PRODUCTS.map(function(p){
+  return '<div class="prod"><svg viewBox="0 0 42 42" aria-hidden="true">'+p.icon+'</svg><span class="tag">'+p.tag+'</span><h3>'+p.n+'</h3><ul>'+p.b.map(function(x){return '<li>'+x+'</li>'}).join('')+'</ul><a class="btn" href="'+BUY[p.k]+'" target="_blank" rel="noopener">Comprar en Hotmart ↗</a></div>';
+}).join('');
+document.getElementById('buy-pack').href = BUY.pack;
+
+/* ===== Demo ===== */
+var DISC = {HID:{n:'Hidrosanitaria',c:'#4fa3d9',who:'Laura · HID'},EST:{n:'Estructura',c:'#8b9a90',who:'Andrés · EST'},ELE:{n:'Eléctrica',c:'#d8d27a',who:'Camilo · ELE'},HVAC:{n:'HVAC',c:'#e39a3b',who:'Sofía · HVAC'}};
+var CLASHES = [
+  {id:'037',kind:'cruce',a:'Tubería sanitaria Ø4"',ad:'HID',b:'Viga V-204',bd:'EST',lvl:'Piso 3',det:'Penetración 38 mm',owner:'HID',
+   fixes:[{t:'Desvío bajo la viga con 2 codos de 45°',d:'Mantiene la pendiente de 2 %',ok:true,pts:120},{t:'Pase por la viga',d:'Sin consulta al estructural',ok:false,why:'Un pase en viga necesita aprobación del ingeniero estructural.'}]},
+  {id:'041',kind:'cruce',a:'Ducto HVAC 30×20',ad:'HVAC',b:'Bandeja eléctrica 20 cm',bd:'ELE',lvl:'Piso 3',det:'Penetración 55 mm',owner:'ELE',
+   fixes:[{t:'Reducir la sección del ducto',d:'Pasa por encima de la bandeja',ok:false,why:'Reducir el ducto baja el caudal de diseño.'},{t:'Bajar la bandeja 15 cm',d:'Queda a 10 cm del ducto',ok:true,pts:80}]},
+  {id:'044',kind:'cruce',a:'Bajante sanitaria Ø3"',ad:'HID',b:'Muro de concreto M-12',bd:'EST',lvl:'Piso 5',det:'Penetración 22 mm',owner:'HID',
+   fixes:[{t:'Mover la bajante al buitrón',d:'Desplazamiento de 35 cm',ok:true,pts:100},{t:'Regata en el muro',d:'Corte de 4 cm',ok:false,why:'Los muros estructurales no se regatean.'}]},
+  {id:'052',kind:'pendiente',a:'Ramal baño 302',ad:'HID',b:'Pendiente mínima 1 %',bd:'HID',lvl:'Piso 3',det:'Pendiente actual 0,6 %',owner:'HID',
+   fixes:[{t:'Dejar la pendiente en 0,6 %',d:'Sin cambios',ok:false,why:'Por debajo de 1 % el ramal no drena bien.'},{t:'Subir el aparato y ajustar a 2 %',d:'Con codos de 45° al ramal',ok:true,pts:90}]},
+  {id:'058',kind:'conector',a:'Conector jacuzzi apto 501',ad:'HID',b:'Red de desagüe',bd:'HID',lvl:'Piso 5',det:'Conector abierto',owner:'HID',
+   fixes:[{t:'Conectar con Yee de 45° a la red',d:'Tramo de 2" y codo de 45°',ok:true,pts:70},{t:'Dejarlo para obra',d:'Se resuelve en sitio',ok:false,why:'Un conector abierto termina en reproceso en obra.'}]}
+];
+var S = {stage:0,pts:0,sel:null,disc:{HID:0,EST:0,ELE:0,HVAC:0},tol:5};
+CLASHES.forEach(function(c){c.st='nueva';c.assigned=null;c.fix=null});
+var $=function(id){return document.getElementById(id)};
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+var tt;function toast(m){var t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(function(){t.hidden=true},2600)}
+function log(m,cls){var d=document.createElement('div');d.className=cls||'';d.textContent='› '+m;var l=$('log');l.prepend(d)}
+function approved(){return CLASHES.filter(function(c){return c.st==='aprobada'}).length}
+
+function hud(){
+  var lv=S.pts>=400?3:S.pts>=150?2:1, next=lv===1?150:lv===2?400:null;
+  $('lvl').firstChild.nodeValue='Nivel '+lv+' · '+(lv===3?'Coordinador senior':'Coordinador');
+  $('lvls').textContent=approved()+' de '+CLASHES.length+' misiones aprobadas';
+  $('pts').textContent=S.pts.toLocaleString('es-CO')+' pts';
+  var pct=Math.round(approved()/CLASHES.length*100);
+  $('xp').style.width=pct+'%';$('pct').textContent=pct+' %';
+  $('xpl').textContent=next?'Siguiente nivel a '+next+' pts':'Nivel máximo de la demo';
+  var max=Math.max(1,S.disc.HID,S.disc.EST,S.disc.ELE,S.disc.HVAC);
+  $('board').innerHTML=['HID','ELE','HVAC','EST'].sort(function(a,b){return S.disc[b]-S.disc[a]}).map(function(k){
+    return '<div class="r"><span>'+DISC[k].n+'</span><span class="bar"><i style="width:'+(S.disc[k]/max*100)+'%;background:'+DISC[k].c+'"></i></span><span>'+S.disc[k]+'</span></div>'}).join('');
+  [].forEach.call($('steps').children,function(s,i){s.dataset.on=i===S.stage;s.dataset.done=i<S.stage});
+}
+
+/* ---- visor SVG ---- */
+function sceneBase(){
+  return '<defs><pattern id="g" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#1f3325"/></pattern></defs><rect width="760" height="420" fill="url(#g)"/>';
+}
+function draw(){
+  var s=sceneBase();
+  if(S.stage===0){
+    s+='<text x="380" y="215" text-anchor="middle" fill="#88a890" font-family="IBM Plex Mono,monospace" font-size="16">Carga el modelo federado para empezar</text>';
+    $('scene').innerHTML=s;return;
+  }
+  var c=S.sel!==null?CLASHES[S.sel]:null;
+  if(!c){ // vista general del edificio
+    s+='<polygon points="180,70 520,70 600,30 260,30" fill="#4a5a50"/>';
+    for(var i=0;i<5;i++){var y=80+i*62;s+='<rect x="180" y="'+y+'" width="340" height="56" fill="#132117" stroke="#36443b"/><polygon points="520,'+y+' 600,'+(y-40)+' 600,'+(y+16)+' 520,'+(y+56)+'" fill="#0f1a13" stroke="#36443b"/>'+
+      '<line x1="186" y1="'+(y+20)+'" x2="514" y2="'+(y+20)+'" stroke="#4fa3d9" stroke-width="4"/><line x1="186" y1="'+(y+34)+'" x2="514" y2="'+(y+34)+'" stroke="#e39a3b" stroke-width="6"/><line x1="186" y1="'+(y+46)+'" x2="514" y2="'+(y+46)+'" stroke="#d8d27a" stroke-width="3"/>'+
+      '<text x="170" y="'+(y+34)+'" text-anchor="end" fill="#88a890" font-family="IBM Plex Mono,monospace" font-size="12">P'+(5-i)+'</text>';}
+    if(S.stage>=1&&S.detected){CLASHES.forEach(function(k,j){var fl=k.lvl==='Piso 5'?0:2;var x=240+j*60,y=80+fl*62+28;
+      s+='<circle cx="'+x+'" cy="'+y+'" r="9" fill="'+(k.st==='aprobada'?'#5fae74':'#ff5a4e')+'"/>'+(k.st!=='aprobada'?'<circle class="ring" cx="'+x+'" cy="'+y+'" r="14" fill="none" stroke="#ff5a4e" stroke-width="2"/>':'');});}
+    $('scene').innerHTML=s;return;
+  }
+  var done=c.st==='aprobada', A=DISC[c.ad].c, B=DISC[c.bd]?DISC[c.bd].c:'#8b9a90';
+  if(c.kind==='cruce'){
+    s+='<polygon points="320,70 440,70 480,46 360,46" fill="#5d6e63"/><polygon points="320,70 440,70 440,260 320,260" fill="'+B+'" opacity=".55" stroke="'+B+'"/><polygon points="440,70 480,46 480,236 440,260" fill="#36443b"/>';
+    s+='<text x="380" y="250" text-anchor="middle" fill="#eef4ef" font-family="IBM Plex Mono,monospace" font-size="12">'+esc(c.b)+'</text>';
+    if(!done){
+      s+='<rect x="30" y="170" width="700" height="26" rx="4" fill="'+A+'"/><rect x="320" y="170" width="120" height="26" fill="'+A+'" opacity=".35"/>';
+      s+='<circle class="ring" cx="380" cy="183" r="14" fill="none" stroke="#ff5a4e" stroke-width="3"/><circle cx="380" cy="183" r="5" fill="#ff5a4e"/>';
+    } else {
+      s+='<path d="M30 183 H270 L310 293 H450 L490 183 H730" fill="none" stroke="'+A+'" stroke-width="26" stroke-linejoin="round"/>';
+      s+='<text x="380" y="330" text-anchor="middle" fill="#5fae74" font-family="IBM Plex Mono,monospace" font-size="13" font-weight="600">✓ '+esc(c.fix)+'</text>';
+    }
+  } else if(c.kind==='pendiente'){
+    s+='<rect x="40" y="330" width="680" height="20" fill="#36443b"/><rect x="80" y="210" width="70" height="60" rx="8" fill="#eef4ef" opacity=".85"/>';
+    var y2=done?300:252;
+    s+='<line x1="150" y1="250" x2="700" y2="'+y2+'" stroke="'+A+'" stroke-width="18" stroke-linecap="round"/>';
+    s+='<text x="425" y="'+(done?255:225)+'" text-anchor="middle" fill="'+(done?'#5fae74':'#ff8a80')+'" font-family="IBM Plex Mono,monospace" font-size="15" font-weight="600">'+(done?'✓ Pendiente 2 %':'Pendiente 0,6 % · mínimo 1 %')+'</text>';
+    if(!done)s+='<circle class="ring" cx="425" cy="252" r="14" fill="none" stroke="#ff5a4e" stroke-width="3"/>';
+  } else {
+    s+='<rect x="60" y="150" width="200" height="90" rx="40" fill="#eef4ef" opacity=".85"/><text x="160" y="200" text-anchor="middle" fill="#0a110d" font-family="IBM Plex Mono,monospace" font-size="13">Jacuzzi</text>';
+    s+='<rect x="40" y="300" width="680" height="24" rx="4" fill="'+A+'"/>';
+    if(done){s+='<path d="M200 240 V270 L240 300" fill="none" stroke="'+A+'" stroke-width="14" stroke-linejoin="round"/><text x="420" y="270" fill="#5fae74" font-family="IBM Plex Mono,monospace" font-size="13" font-weight="600">✓ Yee 45° a la red</text>';}
+    else{s+='<line x1="200" y1="240" x2="200" y2="262" stroke="'+A+'" stroke-width="14"/><circle class="ring" cx="200" cy="268" r="14" fill="none" stroke="#ff5a4e" stroke-width="3"/><text x="230" y="275" fill="#ff8a80" font-family="IBM Plex Mono,monospace" font-size="13">Conector abierto</text>';}
+  }
+  s+='<rect x="20" y="20" width="300" height="56" rx="6" fill="#081009" stroke="'+(done?'#5fae74':'#ff5a4e')+'"/>'+
+     '<text x="34" y="42" fill="'+(done?'#5fae74':'#ff8a80')+'" font-family="IBM Plex Mono,monospace" font-size="12.5" font-weight="600">INTERFERENCIA #'+c.id+' · '+c.st.toUpperCase()+'</text>'+
+     '<text x="34" y="63" fill="#c9dccd" font-family="IBM Plex Mono,monospace" font-size="12">'+esc(c.lvl+' · '+c.det)+'</text>';
+  $('scene').innerHTML=s;
+}
+
+/* ---- panel por etapa ---- */
+function panel(){
+  var P=$('panel');
+  if(S.stage===0){
+    P.innerHTML='<h3>1 · Carga el modelo federado</h3><p>Une las disciplinas de la Torre D en un solo modelo IFC.</p><div class="disc"><span>ARQ</span><span>EST</span><span>HID</span><span>ELE</span><span>HVAC</span></div><button class="btn green" id="a-load">Cargar modelo</button>';
+    $('a-load').onclick=function(){
+      var spans=P.querySelectorAll('.disc span'),cols=['#c9dccd','#8b9a90','#4fa3d9','#d8d27a','#e39a3b'],i=0;
+      this.disabled=true;
+      (function next(){if(i<spans.length){spans[i].classList.add('on');spans[i].style.background=cols[i];spans[i].style.borderColor=cols[i];log('Cargado '+spans[i].textContent+'.ifc','info');i++;setTimeout(next,220)}else{
+        S.stage=1;$('vinfo').innerHTML='<b>Torre D</b> · ARQ+EST+HID+ELE+HVAC · 21.380 elementos';log('Modelo federado listo','ok');render()}})();
+    };
+  } else if(S.stage===1){
+    P.innerHTML='<h3>2 · Corre la detección</h3><p>Escoge la tolerancia y busca los cruces entre disciplinas, más las revisiones de pendientes y conectores.</p><div class="row"><label for="tol" style="font-size:14px">Tolerancia</label><select id="tol" style="background:#182a1d;color:#eef4ef;border:1px solid #24382a;border-radius:6px;padding:8px;font:600 14px var(--body)"><option value="5" selected>5 mm</option><option value="10">10 mm</option><option value="25">25 mm</option></select></div><button class="btn green" id="a-det">Detectar interferencias</button>';
+    $('a-det').onclick=function(){S.tol=+$('tol').value;S.detected=true;S.stage=2;log('Detección con '+S.tol+' mm: '+CLASHES.length+' interferencias','bad');toast(CLASHES.length+' interferencias encontradas');render()};
+  } else if(S.stage===2){
+    var c=S.sel!==null?CLASHES[S.sel]:null;
+    var list='<div class="list">'+CLASHES.map(function(k,i){
+      var icon=k.st==='aprobada'?'✓':k.kind==='pendiente'?'%':k.kind==='conector'?'⊙':'!';
+      var bg=k.st==='aprobada'?'background:#1d3a25;color:#5fae74':'background:#3b1714;color:#ff5a4e';
+      return '<button type="button" class="cl" data-i="'+i+'" aria-pressed="'+(S.sel===i)+'"><span class="ic" style="'+bg+'">'+icon+'</span><span><b>'+esc(k.a)+' × '+esc(k.b)+'</b><small>#'+k.id+' · '+esc(k.lvl)+'</small></span><span class="chip s-'+k.st+'">'+k.st+'</span></button>'}).join('')+'</div>';
+    var act='';
+    if(!c){act='<p>Toca una interferencia para abrirla en el visor.</p>'}
+    else if(c.st==='nueva'){
+      act='<h3>#'+c.id+' · Asigna la misión</h3><p>¿Qué disciplina debe moverse?</p><div class="opt">'+Object.keys(DISC).map(function(k){return '<button type="button" data-as="'+k+'">'+DISC[k].who+'<small>'+DISC[k].n+'</small></button>'}).join('')+'</div>';
+    } else if(c.st==='asignada'){
+      act='<h3>#'+c.id+' · Misión asignada</h3><p>'+DISC[c.assigned].who+' está modelando la propuesta en Revit con el MCP Life City…</p>';
+    } else if(c.st==='propuesta'){
+      act='<h3>#'+c.id+' · Revisa la propuesta</h3><p>'+DISC[c.assigned].who+' envió dos alternativas. Aprueba la que cumple.</p><div class="opt">'+c.fixes.map(function(f,j){return '<button type="button" data-fx="'+j+'">Aprobar: '+esc(f.t)+'<small>'+esc(f.d)+'</small></button>'}).join('')+'</div>';
+    } else {
+      act='<h3>#'+c.id+' · Aprobada</h3><p>'+esc(c.fix)+'. La misión sumó puntos para '+DISC[c.assigned].n+'.</p>';
+    }
+    P.innerHTML='<h3>3 · Resuelve las misiones</h3>'+list+'<div style="border-top:1px dashed #24382a;padding-top:10px;display:flex;flex-direction:column;gap:8px">'+act+'</div>'+(approved()===CLASHES.length?'<button class="btn" id="a-rel">Liberar modelo</button>':'');
+    P.querySelectorAll('.cl').forEach(function(b){b.onclick=function(){S.sel=+b.dataset.i;$('vsel').textContent='#'+CLASHES[S.sel].id;render()}});
+    P.querySelectorAll('[data-as]').forEach(function(b){b.onclick=function(){
+      var k=b.dataset.as;
+      if(k!==c.owner){S.pts=Math.max(0,S.pts-10);log('#'+c.id+': '+DISC[k].n+' no es quien debe moverse (−10)','bad');toast('Pista: la que debe moverse es '+DISC[c.owner].n);render();return}
+      c.assigned=k;c.st='asignada';log('#'+c.id+' asignada a '+DISC[k].who,'info');render();
+      setTimeout(function(){c.st='propuesta';log('#'+c.id+': propuesta recibida de '+DISC[k].who,'info');if(S.sel===CLASHES.indexOf(c))render();else hud(),panel()},1200);
+    }});
+    P.querySelectorAll('[data-fx]').forEach(function(b){b.onclick=function(){
+      var f=c.fixes[+b.dataset.fx];
+      if(!f.ok){S.pts=Math.max(0,S.pts-10);log('#'+c.id+' rechazada en revisión: '+f.why+' (−10)','bad');toast(f.why);render();return}
+      c.st='aprobada';c.fix=f.t;S.pts+=f.pts;S.disc[c.assigned]+=f.pts;log('#'+c.id+' aprobada: '+f.t+' (+'+f.pts+')','ok');toast('+'+f.pts+' pts · misión aprobada');
+      if(approved()===CLASHES.length)log('Todas las misiones aprobadas. Libera el modelo.','ok');
+      render();
+    }});
+    if($('a-rel'))$('a-rel').onclick=function(){S.stage=3;S.sel=null;$('vsel').textContent='Modelo liberado';log('Modelo liberado para obra','ok');render()};
+  } else {
+    P.innerHTML='<h3>4 · Modelo liberado</h3><p>Así queda el informe para el comité de obra.</p><div class="tablewrap"><table class="report"><thead><tr><th>#</th><th>Interferencia</th><th>Resolvió</th><th>Solución</th></tr></thead><tbody>'+
+      CLASHES.map(function(c){return '<tr><td>'+c.id+'</td><td>'+esc(c.a)+' × '+esc(c.b)+'</td><td>'+DISC[c.assigned].who+'</td><td>'+esc(c.fix)+'</td></tr>'}).join('')+
+      '</tbody></table></div><p><b>'+S.pts+' pts</b> en total. Esto mismo lo haces con tus proyectos.</p><div class="row"><a class="btn" href="#comprar">Llevarlo a mis proyectos ↓</a><button class="btn ghost sm" id="a-again" type="button">Repetir demo</button></div>';
+    $('a-again').onclick=function(){S={stage:0,pts:0,sel:null,disc:{HID:0,EST:0,ELE:0,HVAC:0},tol:5};CLASHES.forEach(function(c){c.st='nueva';c.assigned=null;c.fix=null});$('log').innerHTML='';$('vinfo').textContent='Modelo sin cargar';$('vsel').textContent='';render()};
+  }
+}
+function render(){hud();panel();draw()}
+log('Abre la demo como coordinador BIM','info');
+render();
+</script>
+</body>
+</html>
