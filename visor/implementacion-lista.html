@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Tu Sala Virtual Lista</title>
+<meta name="description" content="Descarga el instalador de tu sala de ventas virtual con el acceso directo a tu dashboard.">
+<meta name="robots" content="noindex">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="icon" href="../icons/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="./implementacion/kit.js"></script>
+<style>
+/* Layout: confirmación + descarga del instalador arriba; qué trae el instalador (dashboard, tutoriales, dominio) en tarjetas; pasos para instalar; enlace a la mejora fotorrealista. */
+:root{
+  --bg:#0c110e; --surface:#141d17; --raise:#1b271f; --line:#283a2d;
+  --fg:#eef4ef; --soft:#c9dccd; --muted:#93ab99;
+  --green:#5fae74; --gold:#d4ae5a; --gold-soft:#33290f; --err:#ff8a7a;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.5;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.wrap{max-width:1000px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:22px;padding-block:0 40px}
+h1,h2,h3{font-family:var(--display);font-weight:800;margin:0;text-wrap:balance;text-transform:uppercase}
+h1{font-size:clamp(36px,6vw,62px);line-height:.94}
+h1 em{font-style:normal;color:var(--gold)}
+h2{font-size:clamp(26px,4vw,38px);line-height:1}
+h3{font-size:19px;line-height:1.1}
+p{margin:0}
+.kicker{font:600 12px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--green)}
+.lede{font-size:18px;color:var(--soft);max-width:60ch}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding-block:18px}
+.logo{display:flex;align-items:center;gap:10px;font:800 18px var(--display);letter-spacing:.12em;text-transform:uppercase;text-decoration:none;color:var(--fg)}
+.logo i{width:30px;height:30px;border:2px solid var(--gold);display:grid;place-items:center;font-style:normal;color:var(--gold);font-size:15px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--gold);color:#16130a;font:800 19px var(--display);letter-spacing:.06em;text-transform:uppercase;padding:14px 22px;border-radius:4px;text-decoration:none;border:0;cursor:pointer}
+.btn:disabled{opacity:.5;cursor:wait}
+.btn.ghost{background:transparent;color:var(--fg);border:1.5px solid var(--line)}
+:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.hero{background:linear-gradient(180deg,var(--gold-soft),var(--surface) 70%);border:1px solid var(--gold);border-radius:14px;padding:22px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;align-items:center}
+.hero .copy{display:flex;flex-direction:column;gap:10px;min-width:0}
+.dl{display:flex;flex-direction:column;gap:8px;align-items:stretch;min-width:240px}
+.state{font:500 12.5px var(--mono);color:var(--muted);text-align:center}
+.sum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.sum div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;min-width:0}
+.sum b{display:block;font:800 26px var(--display);color:var(--gold);overflow-wrap:anywhere}
+.sum span{font-size:13px;color:var(--muted)}
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.card p{color:var(--soft);font-size:14.5px}
+.card svg{width:36px;height:36px}
+.tree{background:var(--raise);border-radius:10px;padding:14px;font:13px/1.7 var(--mono);color:var(--soft);overflow-x:auto;white-space:pre}
+.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;color:var(--soft)}
+.steps b{color:var(--fg)}
+.up{border:1px dashed var(--gold);border-radius:12px;padding:16px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center}
+.up p{color:var(--soft)}
+.miss{background:var(--surface);border:1px solid var(--err);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:10px}
+footer{border-top:1px solid var(--line);padding-top:18px;display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:space-between;font-size:13.5px;color:var(--muted)}
+@media (max-width:780px){.hero,.up{grid-template-columns:minmax(0,1fr)}.cards{grid-template-columns:minmax(0,1fr)}.sum{grid-template-columns:repeat(2,minmax(0,1fr))}.dl{min-width:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="logo" href="./sala-ventas.html"><i>LC</i>Life City · BIM Hub</a>
+    <span class="kicker">Pago recibido</span>
+  </header>
+
+  <section class="hero" id="hero">
+    <div class="copy">
+      <span class="kicker">Tu implementación está lista</span>
+      <h1 id="h">Descarga tu <em>sala de ventas virtual</em></h1>
+      <p class="lede" id="lede">El instalador trae tu sitio con el modelo 3D, tus unidades y precios, y el acceso directo a tu dashboard.</p>
+    </div>
+    <div class="dl">
+      <button class="btn" id="dl" type="button" disabled>Preparando…</button>
+      <span class="state" id="state">Armando el instalador</span>
+    </div>
+  </section>
+
+  <section class="miss" id="miss" hidden>
+    <h2>No encontramos tu implementación en este navegador</h2>
+    <p class="lede">El instalador se arma con los datos que llenaste en la Sales App. Si pagaste desde otro dispositivo o borraste los datos del navegador, escríbenos con tu comprobante de PayPal y te lo enviamos.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:10px"><a class="btn" id="miss-wa" target="_blank" rel="noopener">Enviar mi comprobante por WhatsApp ↗</a><a class="btn ghost" href="./sala-ventas.html#implementar">Volver a la Sales App</a></div>
+  </section>
+
+  <div class="sum" id="sum" hidden></div>
+
+  <section style="display:flex;flex-direction:column;gap:12px">
+    <span class="kicker">Lo que trae el instalador</span>
+    <div class="cards">
+      <div class="card"><svg viewBox="0 0 36 36" fill="none" aria-hidden="true"><rect x="4" y="6" width="28" height="22" rx="2" stroke="#d4ae5a" stroke-width="2.4"/><path d="M4 12h28M10 18h8M10 23h14" stroke="#d4ae5a" stroke-width="2.4"/></svg><h3>Dashboard</h3><p>Acceso directo <b>ABRIR-DASHBOARD.html</b>. Ahí le das el valor y el estado a cada unidad, ajustas precios por tipo y descargas los datos actualizados.</p></div>
+      <div class="card"><svg viewBox="0 0 36 36" fill="none" aria-hidden="true"><circle cx="18" cy="18" r="13" stroke="#5fae74" stroke-width="2.4"/><path d="M14 13.5a4 4 0 1 1 5.5 3.7c-1 .4-1.5 1.2-1.5 2.3V21M18 25.5v.5" stroke="#5fae74" stroke-width="2.4" stroke-linecap="round"/></svg><h3>Tutoriales</h3><p>Escribe tu pregunta (cambiar precio, WhatsApp, modelo 3D, dominio) y te muestra el paso a paso. Si no está, nos preguntas por WhatsApp.</p></div>
+      <div class="card"><svg viewBox="0 0 36 36" fill="none" aria-hidden="true"><circle cx="18" cy="18" r="13" stroke="#4fa3d9" stroke-width="2.4"/><path d="M5 18h26M18 5c4 4 4 22 0 26M18 5c-4 4-4 22 0 26" stroke="#4fa3d9" stroke-width="2.4"/></svg><h3>Tu propio dominio</h3><p>Instrucciones para publicarla en Netlify, conectar tu dominio (registros CNAME y A) o subirla a tu hosting.</p></div>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:12px">
+    <span class="kicker">Instálala en 3 pasos</span>
+    <ol class="steps">
+      <li><b>Descomprime</b> el archivo .zip que descargaste.</li>
+      <li><b>Abre ABRIR-DASHBOARD.html</b> con doble clic. Revisa precios y estados, toca Guardar y luego Descargar datos.js.</li>
+      <li><b>Publica la carpeta sitio</b> siguiendo la pestaña "Publicar en tu dominio" del dashboard.</li>
+    </ol>
+    <div class="tree" id="tree"></div>
+  </section>
+
+  <section class="up">
+    <div style="display:flex;flex-direction:column;gap:6px;min-width:0"><span class="kicker" style="color:var(--gold)">Mejora disponible</span><h3>¿La quieres con acabado fotorrealista?</h3><p>Luz real, materiales, la vista desde cada piso y video 4K por tipología.</p></div>
+    <a class="btn ghost" href="./fotorrealismo.html">Ver la versión fotorrealista</a>
+  </section>
+
+  <footer><span>Life City BIM Management Hub · Cali, Colombia</span><span>Soporte: WhatsApp +57 317 337 1577 · proyectos@lifecity.com.co</span></footer>
+</div>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  function cop(m){return '$'+Math.round(m).toLocaleString('es-CO')+' M'}
+  var file=null;
+  LCKit.load().then(function(r){
+    var P=r.pedido;
+    if(!P){$('hero').hidden=true;$('miss').hidden=false;$('miss-wa').href='https://wa.me/573173371577?text='+encodeURIComponent('Hola Life City, pagué la implementación de la sala virtual y necesito el instalador. Adjunto mi comprobante de PayPal.');return}
+    var first=(P.nombre||'').split(' ')[0];
+    $('h').innerHTML=(first?first+', descarga ':'Descarga ')+'la sala virtual de <em></em>';$('h').querySelector('em').textContent=P.proyecto;
+    var tot=P.unidades.reduce(function(a,u){return a+u.precio},0);
+    $('sum').hidden=false;
+    $('sum').innerHTML='<div><b>'+P.unidades.length+'</b><span>unidades</span></div><div><b>'+cop(tot)+'</b><span>valor del inventario</span></div><div><b>'+P.espacios.length+'</b><span>tipos de espacio</span></div><div><b id="m3d"></b><span>modelo 3D</span></div>';
+    var mext=r.model?String(r.model.name).split('.').pop().toLowerCase():'';
+    $('m3d').textContent=r.model?(/^(glb|gltf|obj)$/.test(mext)?'Incluido':'Por convertir'):P.modeloOriginal?'Por enviar':'Torre';
+    if(r.model&&!/^(glb|gltf|obj)$/.test(mext))$('lede').textContent='El instalador trae tu sitio con tus unidades, precios y el acceso directo a tu dashboard. Tu archivo .'+mext+' lo convertimos a la web y te lo enviamos para reemplazar el modelo.';
+    var slug=LCKit.slug(P.proyecto)+'-sala-virtual';
+    $('tree').textContent=slug+'/\n├─ ABRIR-DASHBOARD.html   ← acceso directo al dashboard\n├─ LEEME.txt\n└─ sitio/\n   ├─ index.html          ← tu sala virtual para compradores\n   ├─ dashboard.html      ← precios, estados, tutoriales y dominio\n   ├─ datos.js            ← unidades y precios\n   ├─ visor.js'+(r.model?'\n   └─ modelo.'+mext:'');
+    LCKit.buildZip(P,r.model).then(function(out){
+      file=out;$('dl').disabled=false;$('dl').textContent='Descargar instalador';
+      $('state').textContent=out.filename+' · '+(out.blob.size>1e6?(out.blob.size/1e6).toFixed(1)+' MB':Math.max(1,Math.round(out.blob.size/1e3))+' KB');
+      download();
+    }).catch(function(){$('dl').textContent='Reintentar';$('dl').disabled=false;$('state').textContent='No se pudo armar el instalador. Revisa tu conexión y reintenta.';$('dl').onclick=function(){location.reload()}});
+  });
+  function download(){
+    if(!file)return;
+    var a=document.createElement('a');a.href=URL.createObjectURL(file.blob);a.download=file.filename;document.body.appendChild(a);a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},2000);
+  }
+  $('dl').onclick=download;
+})();
+</script>
+</body>
+</html>
