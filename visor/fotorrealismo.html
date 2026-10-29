@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sala Virtual Fotorrealista</title>
+<meta name="description" content="Confirmación del pago de tu sala de ventas virtual y opción de pasar a la versión fotorrealista.">
+<meta name="robots" content="noindex">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="icon" href="../icons/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: confirmación del pago arriba (estado de la transacción + próximos pasos) y, debajo, la oferta de fotorrealismo con comparador antes/después y lo que incluye. */
+:root{
+  --bg:#0c110e; --band:#111a14; --surface:#16211a; --line:#26382b;
+  --fg:#eef4ef; --soft:#c9dccd; --muted:#88a890;
+  --green:#3d7a4e; --green-lt:#5fae74; --gold:#d4ae5a; --warn:#e8b45a; --err:#ff8a7a;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.5;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.wrap{max-width:1040px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);font-weight:800;margin:0;text-wrap:balance;text-transform:uppercase}
+h1{font-size:clamp(38px,6.4vw,68px);line-height:.94}
+h1 em,h2 em{font-style:normal;color:var(--gold)}
+h2{font-size:clamp(28px,4.4vw,44px);line-height:1}
+h3{font-size:20px;line-height:1.1;letter-spacing:.02em}
+p{margin:0}
+.kicker{font:600 12px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--green-lt)}
+.lede{font-size:18px;color:var(--soft);max-width:60ch}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--gold);color:#16130a;font:800 18px var(--display);letter-spacing:.06em;text-transform:uppercase;padding:13px 22px;border-radius:4px;text-decoration:none;border:0;cursor:pointer}
+.btn:hover{background:#e4c272}
+.btn.ghost{background:transparent;color:var(--fg);border:1.5px solid var(--line)}
+:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding-block:18px}
+.logo{display:flex;align-items:center;gap:10px;font:800 18px var(--display);letter-spacing:.12em;text-transform:uppercase;text-decoration:none;color:var(--fg)}
+.logo i{width:30px;height:30px;border:2px solid var(--gold);display:grid;place-items:center;font-style:normal;color:var(--gold);font-size:15px}
+/* confirmación */
+.ok{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:20px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;align-items:start}
+.ok .mark{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font:800 26px var(--display);border:2px solid var(--green-lt);color:var(--green-lt)}
+.ok[data-st="pending"] .mark{border-color:var(--warn);color:var(--warn)}
+.ok[data-st="bad"] .mark{border-color:var(--err);color:var(--err)}
+.ok h2{font-size:clamp(24px,3.6vw,34px)}
+.ok p{color:var(--soft)}
+.tx{font:500 12.5px var(--mono);color:var(--muted);overflow-wrap:anywhere}
+.next{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
+.next div{border-top:3px solid var(--green);padding-top:8px;font-size:14px;color:var(--soft);min-width:0}
+.next b{display:block;color:var(--fg);font:800 16px var(--display);text-transform:uppercase}
+/* oferta */
+.sec{padding-block:40px;display:flex;flex-direction:column;gap:18px}
+.cmp{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--line);aspect-ratio:16/9;max-width:100%;user-select:none;touch-action:pan-y}
+.cmp svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.cmp .after{clip-path:inset(0 0 0 50%)}
+.cmp .handle{position:absolute;top:0;bottom:0;left:50%;width:3px;background:var(--gold);transform:translateX(-1.5px);pointer-events:none}
+.cmp .handle::after{content:"⇆";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:38px;height:38px;border-radius:50%;background:var(--gold);color:#16130a;display:grid;place-items:center;font-weight:800}
+.cmp .lb{position:absolute;bottom:10px;font:700 12px var(--mono);background:rgba(0,0,0,.6);color:#fff;padding:4px 8px;border-radius:4px;pointer-events:none}
+.cmp input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:ew-resize;margin:0}
+.feat{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.feat div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.feat p{font-size:14.5px;color:var(--soft)}
+.feat .k{font:600 11.5px var(--mono);color:var(--gold)}
+.table{width:100%;border-collapse:collapse;font-size:14.5px;min-width:520px}
+.table th,.table td{text-align:left;padding:10px;border-bottom:1px solid var(--line)}
+.table th{font:600 11.5px var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.table td:nth-child(3){color:var(--gold);font-weight:700}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+.cta{background:var(--gold);color:#16130a;border-radius:12px;padding:22px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center}
+.cta h2{color:#16130a}
+.cta p{font-size:16px;max-width:56ch}
+.cta .btn{background:#0c110e;color:var(--gold)}
+.cta .row{display:flex;flex-direction:column;gap:8px;align-items:stretch}
+.cta .alt{font:600 13px var(--mono);text-align:center;color:#3d3418;text-decoration:underline}
+footer{border-top:1px solid var(--line);padding-block:22px;display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:space-between;font-size:13.5px;color:var(--muted)}
+@media (max-width:760px){.feat,.next{grid-template-columns:minmax(0,1fr)}.cta{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:480px){.ok{grid-template-columns:minmax(0,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="logo" href="./sala-ventas.html"><i>LC</i>Life City · BIM Hub</a>
+    <span class="kicker">Sala de ventas virtual</span>
+  </header>
+
+  <section class="ok" id="ok" data-st="ok" aria-live="polite">
+    <span class="mark" id="mark">✓</span>
+    <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+      <span class="kicker" id="st-k">Pago recibido</span>
+      <h2 id="st-h">Tu sala de ventas virtual está en marcha</h2>
+      <p id="st-p">Gracias por tu compra. En menos de 24 horas te escribimos por WhatsApp para recibir tus insumos y agendar el arranque.</p>
+      <span class="tx" id="st-tx"></span>
+      <div class="next">
+        <div><b>1 · Hoy</b>Te escribimos por WhatsApp y te enviamos la lista de insumos.</div>
+        <div><b>2 · Arranque</b>Recibimos el modelo 3D, el inventario y los precios.</div>
+        <div><b>3 · Entrega</b>Tu sala virtual queda publicada con la Sales App y la agenda.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <span class="kicker">Antes de arrancar · mejora disponible</span>
+    <h1>Que el comprador sienta que <em>ya está adentro</em></h1>
+    <p class="lede" id="up-lede">Tu sala virtual carga en cualquier celular con un modelo 3D optimizado. Con la versión fotorrealista, el recorrido se ve como el render final: luz real, reflejos, materiales y el paisaje desde la ventana.</p>
+
+    <div class="cmp" id="cmp">
+      <svg viewBox="0 0 1600 900" aria-hidden="true">
+        <rect width="1600" height="900" fill="#cfd6cf"/>
+        <polygon points="0,900 300,600 1300,600 1600,900" fill="#b9b2a6"/>
+        <rect x="300" y="120" width="1000" height="480" fill="#e4e1da"/>
+        <rect x="380" y="180" width="420" height="300" fill="#a9c6d6"/>
+        <rect x="900" y="380" width="320" height="140" fill="#8b8f86"/>
+        <rect x="920" y="330" width="280" height="60" fill="#9da197"/>
+        <rect x="0" y="0" width="300" height="900" fill="#d7d3cb"/><rect x="1300" y="0" width="300" height="900" fill="#d7d3cb"/>
+        <rect x="560" y="640" width="480" height="140" fill="#9a8f7f"/>
+      </svg>
+      <svg class="after" viewBox="0 0 1600 900" aria-hidden="true">
+        <defs>
+          <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6c98b"/><stop offset=".55" stop-color="#e9a86b"/><stop offset="1" stop-color="#7b8c78"/></linearGradient>
+          <linearGradient id="wall" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#c9b89f"/><stop offset=".5" stop-color="#efe2cc"/><stop offset="1" stop-color="#b8a68b"/></linearGradient>
+          <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a6a4c"/><stop offset="1" stop-color="#4e3826"/></linearGradient>
+          <radialGradient id="sun" cx="590" cy="420" r="620" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#ffd59a" stop-opacity=".75"/><stop offset="1" stop-color="#ffd59a" stop-opacity="0"/></radialGradient>
+          <linearGradient id="sofa" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7d8a7a"/><stop offset="1" stop-color="#4c5a4b"/></linearGradient>
+        </defs>
+        <rect width="1600" height="900" fill="#2a2018"/>
+        <polygon points="0,900 300,600 1300,600 1600,900" fill="url(#floor)"/>
+        <g stroke="#3e2c1d" stroke-width="3" opacity=".5"><line x1="420" y1="600" x2="200" y2="900"/><line x1="560" y1="600" x2="480" y2="900"/><line x1="700" y1="600" x2="740" y2="900"/><line x1="840" y1="600" x2="1000" y2="900"/><line x1="980" y1="600" x2="1260" y2="900"/><line x1="1120" y1="600" x2="1500" y2="900"/></g>
+        <rect x="300" y="120" width="1000" height="480" fill="url(#wall)"/>
+        <rect x="380" y="180" width="420" height="300" fill="url(#sky)"/>
+        <g fill="#5b6b52" opacity=".9"><path d="M380 430 Q450 360 520 420 T660 410 T800 400 V480 H380z"/><path d="M380 455 L430 300 L470 455z" fill="#3f4d39"/><path d="M700 470 L740 330 L780 470z" fill="#3f4d39"/></g>
+        <rect x="380" y="180" width="420" height="300" fill="none" stroke="#2b2219" stroke-width="12"/><line x1="590" y1="180" x2="590" y2="480" stroke="#2b2219" stroke-width="8"/>
+        <polygon points="380,480 800,480 900,760 300,760" fill="#ffd59a" opacity=".22"/>
+        <rect width="1600" height="900" fill="url(#sun)"/>
+        <rect x="0" y="0" width="300" height="900" fill="#3a2d22"/><rect x="1300" y="0" width="300" height="900" fill="#3a2d22"/>
+        <ellipse cx="1060" cy="540" rx="200" ry="20" fill="#000" opacity=".35"/>
+        <rect x="900" y="380" width="320" height="140" rx="14" fill="url(#sofa)"/>
+        <rect x="920" y="330" width="280" height="64" rx="16" fill="#8d9a89"/>
+        <ellipse cx="800" cy="790" rx="260" ry="28" fill="#000" opacity=".35"/>
+        <rect x="560" y="640" width="480" height="140" rx="6" fill="#6a4a30"/><rect x="560" y="640" width="480" height="22" fill="#8b6845"/>
+        <rect x="560" y="660" width="480" height="40" fill="#fff" opacity=".08"/>
+        <line x1="1050" y1="120" x2="1050" y2="250" stroke="#2b2219" stroke-width="3"/><ellipse cx="1050" cy="270" rx="58" ry="26" fill="#f3cf8e"/><ellipse cx="1050" cy="300" rx="160" ry="70" fill="#ffd59a" opacity=".18"/>
+      </svg>
+      <div class="handle" id="handle"></div>
+      <span class="lb" style="left:10px">Estándar web</span><span class="lb" style="right:10px">Fotorrealista</span>
+      <input type="range" min="0" max="100" value="50" id="slider" aria-label="Comparar versión estándar y fotorrealista">
+    </div>
+    <p style="font-size:13px;color:var(--muted)">Ilustración del cambio de acabado. Arrastra para comparar.</p>
+
+    <div class="feat">
+      <div><span class="k">Luz</span><h3>Iluminación real</h3><p>Sol según la orientación del proyecto, luz de día, atardecer y noche con las lámparas encendidas.</p></div>
+      <div><span class="k">Materiales</span><h3>Acabados que se sienten</h3><p>Pisos, mesones y enchapes con reflejos y texturas reales. El comprador puede cambiar entre opciones de acabado.</p></div>
+      <div><span class="k">Vista</span><h3>El paisaje desde la ventana</h3><p>La vista real de cada piso, para que el comprador elija también por lo que ve desde el balcón.</p></div>
+      <div><span class="k">Recorrido</span><h3>Video cinematográfico</h3><p>Un recorrido en video 4K de cada tipología para la pauta, Instagram y la pantalla de la sala.</p></div>
+      <div><span class="k">Amoblado</span><h3>Escenas amobladas</h3><p>Cada tipología amoblada por estilo, para que el comprador se imagine viviendo ahí.</p></div>
+      <div><span class="k">Sala física</span><h3>Pantalla en la sala</h3><p>El mismo recorrido en alta calidad para la pantalla o el televisor de tu sala de ventas.</p></div>
+    </div>
+
+    <div class="tw"><table class="table"><thead><tr><th>Incluye</th><th>Estándar web</th><th>Fotorrealista</th></tr></thead><tbody>
+      <tr><td>Recorrido 3D y medición en celular</td><td>Sí</td><td>Sí</td></tr>
+      <tr><td>Sales App, recomendador y citas</td><td>Sí</td><td>Sí</td></tr>
+      <tr><td>Iluminación de día, atardecer y noche</td><td>Luz base</td><td>Sí</td></tr>
+      <tr><td>Materiales con reflejos y opciones de acabado</td><td>Básicos</td><td>Sí</td></tr>
+      <tr><td>Vista real desde cada piso</td><td>—</td><td>Sí</td></tr>
+      <tr><td>Video 4K por tipología</td><td>—</td><td>Sí</td></tr>
+      <tr><td>Escenas amobladas por estilo</td><td>—</td><td>Sí</td></tr>
+    </tbody></table></div>
+
+    <div class="cta">
+      <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+        <span class="kicker" style="color:#3d3418">Mejora a fotorrealista</span>
+        <h2 id="cta-h">Súbela de nivel antes del arranque</h2>
+        <p>Si la agregas ahora, la trabajamos en la misma implementación con los mismos insumos. Pagas la diferencia con Wompi.</p>
+      </div>
+      <div class="row">
+        <a class="btn" id="up-pay" href="#" target="_blank" rel="noopener">Quiero la fotorrealista ↗</a>
+        <a class="alt" id="up-wa" href="#" target="_blank" rel="noopener">Prefiero hablarlo por WhatsApp</a>
+      </div>
+    </div>
+  </section>
+
+  <footer><span>Life City BIM Management Hub · Cali, Colombia</span><span>WhatsApp +57 317 337 1577 · proyectos@lifecity.com.co</span></footer>
+</div>
+
+<script>
+/* ===================== CONFIGURACIÓN ===================== */
+var CONFIG = {
+  whatsapp: '573173371577',
+  wompiFotorrealismo: '' // link de Wompi de la mejora fotorrealista; vacío = el botón abre WhatsApp
+};
+/* ========================================================= */
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  var q=new URLSearchParams(location.search), id=q.get('id'), env=q.get('env');
+  var pedido=null;try{pedido=JSON.parse(localStorage.getItem('lc-sala-pedido')||'null')}catch(e){}
+  var who=pedido&&pedido.nombre?pedido.nombre.split(' ')[0]:'';
+  var proj=pedido?((pedido.proyecto||'').split(',')[0].trim()||pedido.empresa):'';
+
+  function setState(st,k,h,p){$('ok').dataset.st=st;$('mark').textContent=st==='ok'?'✓':st==='pending'?'…':'!';$('st-k').textContent=k;$('st-h').textContent=h;if(p)$('st-p').textContent=p}
+  if(who)$('st-h').textContent=who+', tu sala de ventas virtual está en marcha';
+  if(proj){$('up-lede').textContent='La sala virtual de '+proj+' carga en cualquier celular con un modelo 3D optimizado. Con la versión fotorrealista, el recorrido se ve como el render final: luz real, reflejos, materiales y el paisaje desde la ventana.';$('cta-h').textContent='Sube '+proj+' de nivel antes del arranque'}
+  if(id){
+    $('st-tx').textContent='Transacción Wompi '+id+(pedido&&pedido.paquete?' · Paquete '+pedido.paquete:'');
+    var base=env==='test'?'https://sandbox.wompi.co':'https://production.wompi.co';
+    fetch(base+'/v1/transactions/'+encodeURIComponent(id)).then(function(r){return r.ok?r.json():null}).then(function(j){
+      var s=j&&j.data&&j.data.status;if(!s)return;
+      if(s==='APPROVED')return;
+      if(s==='PENDING')setState('pending','Pago en proceso','Tu pago se está confirmando','Wompi aún está procesando la transacción. Te avisamos por WhatsApp apenas quede aprobada.');
+      else setState('bad','Pago no aprobado','El pago no se completó','Wompi reporta la transacción como '+s.toLowerCase()+'. Puedes intentarlo de nuevo o escribirnos por WhatsApp.');
+    }).catch(function(){});
+  } else {
+    $('st-tx').textContent=pedido&&pedido.paquete?'Paquete '+pedido.paquete:'';
+  }
+
+  var waMsg='Hola, '+(pedido?'soy '+pedido.nombre+' de '+pedido.empresa+'. ':'')+'Acabo de pagar la sala de ventas virtual'+(id?' (transacción '+id+')':'')+' y quiero la versión fotorrealista'+(proj?' para '+proj:'')+'.';
+  var wa='https://wa.me/'+CONFIG.whatsapp+'?text='+encodeURIComponent(waMsg);
+  $('up-wa').href=wa;
+  $('up-pay').href=CONFIG.wompiFotorrealismo||wa;
+
+  var sl=$('slider'),after=document.querySelector('.cmp .after'),h=$('handle');
+  function upd(){var v=sl.value;after.style.clipPath='inset(0 0 0 '+v+'%)';h.style.left=v+'%'}
+  sl.addEventListener('input',upd);upd();
+})();
+</script>
+</body>
+</html>

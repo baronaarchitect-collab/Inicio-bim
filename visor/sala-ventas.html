@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sala de Ventas Virtual Life City</title>
+<meta name="description" content="Sala de ventas virtual para constructoras: el comprador cuenta qué busca, recorre y mide su apartamento en 3D y llega a la sala con cita y ficha. Cuéntanos tu proyecto y recibe tu propuesta de implementación.">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="icon" href="../icons/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: página de venta clara de marca. Hero con demo en vivo → flujo del comprador → Sales App de implementación (preguntas a la izquierda, ficha en vivo a la derecha) → propuesta programada → pie. */
+:root{
+  --bg:#eef2ec; --paper:#f8faf6; --surface:#ffffff; --line:#d3ddd2; --sunk:#e3eae1;
+  --ink:#13201a; --soft:#33463a; --muted:#64786a;
+  --green:#2e5c3a; --green-lt:#3d7a4e; --green-soft:#dbeadd; --gold:#b8963e; --gold-soft:#f2e8cf;
+  --ok:#2f9e5f; --res:#d39b2a; --sold:#9a948d; --sky:#2f6f8f; --sky-soft:#dcebf2; --wa:#1f9d57; --err:#b5532f;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);font-weight:800;margin:0;text-wrap:balance;text-transform:uppercase}
+h1{font-size:clamp(42px,7vw,78px);line-height:.92}
+h1 em{font-style:normal;color:var(--green-lt)}
+h2{font-size:clamp(28px,4.4vw,44px);line-height:1}
+h3{font-size:21px;line-height:1.1;letter-spacing:.02em}
+p{margin:0}
+.kicker{font:600 12px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+.lede{font-size:18px;color:var(--soft);max-width:60ch}
+a{color:inherit}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--green);color:#fff;font:800 18px var(--display);letter-spacing:.06em;text-transform:uppercase;padding:12px 20px;border-radius:4px;text-decoration:none;border:0;cursor:pointer}
+.btn:hover{background:var(--green-lt)}
+.btn.line{background:transparent;color:var(--green);border:1.5px solid var(--green)}
+.btn.line:hover{background:var(--green-soft)}
+.btn.gold{background:var(--gold);color:#16130a}
+.btn.wa{background:var(--wa)}
+.btn.sm{font-size:15px;padding:8px 12px}
+.link{background:none;border:0;color:var(--muted);font:700 14px var(--body);cursor:pointer;padding:6px}
+:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding-block:18px}
+.logo{display:flex;align-items:center;gap:10px;font:800 18px var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--green);text-decoration:none}
+.logo i{width:30px;height:30px;border:2px solid var(--green);display:grid;place-items:center;font-style:normal;font-size:15px}
+.nav{display:flex;gap:14px;font:600 14px var(--body);flex-wrap:wrap}
+.nav a{text-decoration:none;color:var(--soft)}
+.hero{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:28px;align-items:center;padding-block:14px 36px}
+.hero .copy{display:flex;flex-direction:column;gap:16px;min-width:0}
+.ctas{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.scene{background:linear-gradient(180deg,#dfe9e0,#f4f7f2);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.scene svg{display:block;width:100%;height:auto}
+/* flujo comprador */
+.sec{padding-block:40px;display:flex;flex-direction:column;gap:16px}
+.flow{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.flow li{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.flow .n{font:800 34px/1 var(--display);color:var(--green-lt)}
+.flow b{font:800 18px var(--display);text-transform:uppercase}
+.flow p{font-size:14px;color:var(--soft)}
+.live{background:var(--ink);color:#eef4ef;border-radius:12px;padding:20px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center}
+.live p{color:#c9dccd}
+.live .kicker{color:#f0d79a}
+/* sales app */
+.app{background:var(--paper);border-block:1px solid var(--line);padding-block:40px}
+.grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,.85fr);gap:24px;align-items:start;margin-top:18px}
+.steps{display:flex;gap:4px;flex-wrap:wrap;font:600 12px var(--mono)}
+.steps span{padding:4px 10px;border-radius:99px;background:var(--surface);color:var(--muted);border:1px solid var(--line)}
+.steps span[data-on="true"]{background:var(--green);color:#fff;border-color:var(--green)}
+.steps span[data-done="true"]{background:var(--green-soft);color:var(--green);border-color:var(--green-soft)}
+.bar{height:4px;background:var(--sunk);border-radius:99px;overflow:hidden;margin-top:14px}
+.bar i{display:block;height:100%;width:0;background:var(--green-lt);transition:width .3s}
+.tf{display:flex;flex-direction:column;gap:16px;padding-block:20px;min-width:0}
+.qn{font:600 12.5px var(--mono);color:var(--gold)}
+.tf h2{font-size:clamp(26px,4vw,38px)}
+.hint{color:var(--muted)}
+.choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.choice{display:flex;gap:12px;align-items:center;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:13px;font:700 15.5px var(--body);cursor:pointer;text-align:left}
+.choice:hover{border-color:var(--green-lt)}
+.choice .key{flex:none;width:26px;height:26px;border-radius:6px;border:1px solid var(--line);display:grid;place-items:center;font:600 12px var(--mono);color:var(--muted)}
+.choice small{display:block;font-weight:500;color:var(--muted);font-size:13px}
+.choice[aria-pressed="true"]{border-color:var(--green);background:var(--green-soft)}
+.choice[aria-pressed="true"] .key{background:var(--green);border-color:var(--green);color:#fff}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:99px;padding:9px 14px;font:700 14px var(--body);cursor:pointer}
+.chip[aria-pressed="true"]{border-color:var(--green);background:var(--green-soft);color:var(--green)}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;color:var(--muted)}
+.f input,.f textarea{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:11px 12px;font:16px var(--body);min-width:0}
+.full{grid-column:1/-1}
+.drop{border:1.5px dashed #a9bcae;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--surface)}
+.drop.over{border-color:var(--green);background:var(--green-soft)}
+.drop .head{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.drop .head small{display:block;color:var(--muted);font-size:12.5px;font-weight:500}
+.upl{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--green);color:var(--green);border-radius:8px;padding:7px 12px;font:700 13.5px var(--body);cursor:pointer;position:relative}
+.upl input{position:absolute;opacity:0;width:1px;height:1px}
+.thumbs{display:flex;flex-wrap:wrap;gap:8px}
+.th{position:relative;width:78px;height:78px;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:var(--sunk);display:grid;place-items:center;font:600 11px var(--mono);color:var(--muted);text-align:center;padding:4px}
+.th img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.th button{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;cursor:pointer;z-index:1}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.note{font-size:12.5px;color:var(--muted)}
+.err{color:var(--err);font-size:14px}
+.sheet{position:sticky;top:16px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px;box-shadow:6px 6px 0 var(--gold-soft);min-width:0}
+.sheet .lbl{font:600 11.5px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--gold)}
+.sheet dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:7px 14px;margin:0;font-size:14px}
+.sheet dt{color:var(--muted)}
+.sheet dd{margin:0;font-weight:700}
+.sheet dd.empty{color:#a6b3a8;font-weight:500}
+.pk{display:flex;flex-direction:column;gap:4px;border:1px solid var(--green-soft);background:var(--green-soft);border-radius:8px;padding:10px}
+.pk b{font:800 18px var(--display);text-transform:uppercase;color:var(--green)}
+.pk span{font-size:13px;color:var(--soft)}
+/* previsualización */
+.pv{border:2px solid var(--ink);border-radius:14px;overflow:hidden;background:var(--surface);position:relative}
+.pv-bar{display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--ink);color:#c9dccd;font:600 11.5px var(--mono)}
+.pv-bar i{width:9px;height:9px;border-radius:50%;background:#3d4a42;display:inline-block}
+.pv-bar span{margin-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pv-hero{position:relative;min-height:180px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.8fr);gap:12px;padding:16px;background:linear-gradient(180deg,#dfe9e0,#f4f7f2)}
+.pv-hero h4{font:800 clamp(24px,4vw,34px)/.95 var(--display);text-transform:uppercase;margin:6px 0}
+.pv-hero p{font-size:13.5px;color:var(--soft)}
+.pv-img{border-radius:8px;overflow:hidden;height:200px;background:var(--sunk);display:grid;place-items:center}
+.pv-img img{width:100%;height:100%;object-fit:cover;display:block}
+.pv-img svg{width:auto;max-width:100%;height:100%;display:block}
+.pv-body{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:12px 16px 16px}
+.pv-c{border:1px solid var(--line);border-radius:8px;padding:10px;font-size:12.5px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.pv-c b{font:800 15px var(--display);text-transform:uppercase}
+.pv-u{display:flex;justify-content:space-between;border:1px solid var(--line);border-radius:5px;padding:3px 6px;font:600 11px var(--mono)}
+.pv-u em{font-style:normal;background:var(--green-soft);color:var(--green);border-radius:3px;padding:0 4px}
+.pv .wm{position:absolute;right:-38px;top:24px;transform:rotate(35deg);background:var(--gold);color:#16130a;font:800 12px var(--display);letter-spacing:.1em;padding:4px 44px;text-transform:uppercase}
+.pv-btn{background:var(--brand,#2e5c3a);color:#fff;border-radius:4px;padding:6px 10px;font:800 13px var(--display);text-transform:uppercase;width:fit-content}
+.buy{background:var(--ink);color:#eef4ef;border-radius:12px;padding:18px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center}
+.buy p{color:#c9dccd;font-size:14.5px}
+.buy b{color:#fff}
+@media (max-width:640px){.pv-hero,.pv-body,.buy{grid-template-columns:minmax(0,1fr)}}
+/* propuesta */
+.res{display:flex;flex-direction:column;gap:16px;padding-block:20px}
+.reco{border:1.5px solid var(--green);border-radius:12px;padding:16px;background:var(--surface);display:flex;flex-direction:column;gap:12px}
+.reco ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px}
+.pkgs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.pkg{border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:6px;min-width:0;background:var(--paper)}
+.pkg.on{border:2px solid var(--green);background:var(--green-soft)}
+.pkg .t{font:800 17px var(--display);text-transform:uppercase}
+.pkg .w{font:600 11.5px var(--mono);color:var(--muted)}
+.pkg ul{font-size:13px;color:var(--soft);padding-left:16px;margin:0}
+.badge{font:700 11px var(--body);background:var(--green);color:#fff;border-radius:99px;padding:2px 8px;width:fit-content}
+.bub{background:var(--sky-soft);border-radius:12px 12px 12px 3px;padding:12px 14px;font-size:15px;line-height:1.45}
+.tl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.tl div{border-top:4px solid var(--green-lt);padding-top:6px;font-size:13px;min-width:0}
+.tl div:nth-child(2){border-color:var(--green)}.tl div:nth-child(3){border-color:var(--gold)}.tl div:nth-child(4){border-color:var(--ink)}
+.tl b{display:block;font:600 11.5px var(--mono);color:var(--muted)}
+.copybox{background:var(--sunk);border-radius:8px;padding:10px 12px;font:13px/1.5 var(--mono);white-space:pre-line;max-height:220px;overflow-y:auto}
+.reserve{border:1px dashed var(--gold);background:var(--gold-soft);border-radius:10px;padding:14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.reserve p{font-size:14.5px;max-width:52ch}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--ink);color:#fff;padding:10px 16px;border-radius:8px;font-weight:700;font-size:14px;z-index:30;max-width:calc(100% - 32px)}
+footer{padding-block:22px;display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:space-between;font-size:13.5px;color:var(--muted)}
+@media (max-width:960px){.flow{grid-template-columns:repeat(2,minmax(0,1fr))}.flow li:last-child{grid-column:1/-1}}
+@media (max-width:880px){.hero,.grid,.live{grid-template-columns:minmax(0,1fr)}.sheet{position:static}.pkgs{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:560px){.choices,.fields,.flow,.tl{grid-template-columns:minmax(0,1fr)}.flow li:last-child{grid-column:auto}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.bar i{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="logo" href="https://www.lifecity.com.co/coordinacion-bim/" target="_blank" rel="noopener"><i>LC</i>Life City · BIM Hub</a>
+    <nav class="nav"><a href="#flujo">Cómo funciona</a><a href="#demo">Demo en vivo</a><a href="#implementar">Implementarla</a></nav>
+  </header>
+
+  <section class="hero">
+    <div class="copy">
+      <span class="kicker">Sala de ventas virtual · Sales App</span>
+      <h1>El comprador llega a la sala <em>sabiendo qué apartamento quiere</em></h1>
+      <p class="lede">Califica al comprador, le recomienda las unidades disponibles que encajan con él, lo deja recorrer y medir el apartamento en 3D y lo lleva a la sala con cita y una ficha completa para tu asesor.</p>
+      <div class="ctas"><a class="btn" href="#implementar">Quiero implementarla</a><a class="btn line" href="https://vista-san-eduardo.netlify.app/" target="_blank" rel="noopener">Ver demo en vivo ↗</a></div>
+    </div>
+    <div class="scene" role="img" aria-label="Torre en 3D con unidades disponibles, reservadas y vendidas, y un celular con la planta del apartamento">
+      <svg viewBox="0 0 560 380" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="170" cy="356" rx="150" ry="14" fill="#cfdccf"/>
+        <polygon points="70,60 220,60 220,350 70,350" fill="#f8faf6" stroke="#13201a" stroke-width="2"/>
+        <polygon points="220,60 280,36 280,326 220,350" fill="#dfe7dd" stroke="#13201a" stroke-width="2"/>
+        <polygon points="70,60 130,36 280,36 220,60" fill="#fff" stroke="#13201a" stroke-width="2"/>
+        <g stroke="#13201a" stroke-width="1.1"></g>
+        <g id="units" stroke="#13201a" stroke-width="1.1"></g>
+        <rect x="430" y="40" width="0" height="0"/>
+        <rect x="320" y="40" width="210" height="310" rx="24" fill="#13201a"/>
+        <rect x="331" y="54" width="188" height="282" rx="15" fill="#fff"/>
+        <text x="343" y="82" fill="#13201a" font-family="Barlow Condensed,sans-serif" font-size="17" font-weight="800">U-501 · 121 m² · 3 HAB</text>
+        <g stroke="#13201a" stroke-width="3.5" fill="#f8faf6"><rect x="343" y="94" width="100" height="80"/><rect x="443" y="94" width="64" height="50"/><rect x="443" y="144" width="64" height="30"/><rect x="343" y="174" width="78" height="80" fill="#dbeadd"/><rect x="421" y="174" width="36" height="80"/><rect x="457" y="174" width="50" height="80"/></g>
+        <line x1="350" y1="190" x2="414" y2="190" stroke="#2f6f8f" stroke-width="3" stroke-linecap="round"/><rect x="358" y="196" width="48" height="17" rx="3" fill="#2f6f8f"/><text x="382" y="208" fill="#fff" font-family="IBM Plex Mono,monospace" font-size="10" font-weight="600" text-anchor="middle">3,20 m</text>
+        <rect x="343" y="266" width="164" height="54" rx="9" fill="#dcebf2"/><text x="352" y="286" fill="#13201a" font-family="Source Sans 3,sans-serif" font-size="11">✓ Tu cama king cabe y te</text><text x="352" y="302" fill="#13201a" font-family="Source Sans 3,sans-serif" font-size="11">sobran 1,20 m. ¿Agendamos?</text>
+        <path d="M184 140 C 250 140, 280 130, 330 128" fill="none" stroke="#b8963e" stroke-width="2.5" stroke-dasharray="7 6"/>
+      </svg>
+    </div>
+  </section>
+</div>
+
+<div class="wrap">
+  <section class="sec" id="flujo" style="padding-top:0">
+    <span class="kicker">Lo que vive tu comprador</span>
+    <h2>Del primer clic a la cita en sala</h2>
+    <ol class="flow">
+      <li><span class="n">1</span><b>Cuenta qué busca</b><p>Vivienda o inversión, presupuesto, habitaciones y zona, una pregunta por pantalla.</p></li>
+      <li><span class="n">2</span><b>Ve sus unidades</b><p>Solo las disponibles que encajan, con porcentaje de afinidad.</p></li>
+      <li><span class="n">3</span><b>Entra al edificio</b><p>Gira la torre en 3D y entra al apartamento con un botón.</p></li>
+      <li><span class="n">4</span><b>Recorre y mide</b><p>El asesor virtual le pregunta qué mueble necesita y si cabe.</p></li>
+      <li><span class="n">5</span><b>Agenda la cita</b><p>Tu asesor recibe por WhatsApp la ficha con medidas, respuestas y fotos.</p></li>
+    </ol>
+    <div class="live" id="demo">
+      <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+        <span class="kicker">Demo en vivo · La Vista de San Eduardo</span>
+        <h2 style="color:#fff">Pruébala como comprador</h2>
+        <p>El apartamento real exportado de Unreal: 121 m², 3 habitaciones, recorrido, medición y agenda. El modelo pasó de 243 MB a 19 MB para cargar en celular.</p>
+      </div>
+      <a class="btn gold" href="https://vista-san-eduardo.netlify.app/" target="_blank" rel="noopener">Abrir la demo ↗</a>
+    </div>
+  </section>
+</div>
+
+<section class="app" id="implementar">
+  <div class="wrap">
+    <span class="kicker">Implementación · 3 minutos</span>
+    <h2>Cuéntanos tu proyecto y recibe tu propuesta</h2>
+    <p class="lede" style="margin-top:10px">Responde unas preguntas sobre lo que vendes o rentas. Al final ves el paquete que te recomendamos, el plan de implementación y cómo le respondería la Sales App a tus compradores.</p>
+    <div class="steps" id="steps" style="margin-top:16px"><span>1 · Tu ritmo</span><span>2 · Negocio</span><span>3 · Proyecto</span><span>4 · Insumos 3D</span><span>5 · Comercial</span><span>6 · Propuesta</span></div>
+    <div class="grid">
+      <div style="min-width:0"><div class="bar"><i id="bar"></i></div><div class="tf" id="tf" aria-live="polite"></div></div>
+      <aside class="sheet" id="sheet" aria-live="polite"></aside>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+  <footer><span>Life City BIM Management Hub · Cali, Colombia</span><span>WhatsApp +57 317 337 1577 · proyectos@lifecity.com.co</span></footer>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* ===================== CONFIGURACIÓN ===================== */
+var CONFIG = {
+  nombre: 'Life City',
+  whatsapp: '573173371577',
+  correo: 'proyectos@lifecity.com.co',
+  // Link de pago de Wompi (solo aparece al final, después de la previsualización).
+  // En Wompi, configura como URL de redirección: https://baronaarchitect-collab.github.io/Inicio-bim/visor/fotorrealismo.html
+  wompi: ''
+};
+/* ========================================================= */
+var $ = function(s){return document.querySelector(s)};
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+var tt;function toast(m){var e=$('#toast');e.textContent=m;e.hidden=false;clearTimeout(tt);tt=setTimeout(function(){e.hidden=true},3000)}
+
+/* torre del hero */
+(function(){var c=['#9a948d','#2f9e5f','#9a948d','#2f9e5f','#9a948d','#d39b2a','#2f9e5f','#9a948d','#d39b2a','#9a948d','#2f9e5f','#9a948d','#9a948d','#d39b2a','#2f9e5f','#2f9e5f','#9a948d','#9a948d','#2f9e5f','#d39b2a','#9a948d','#9a948d','#2f9e5f','#9a948d'],s='';
+  for(var f=0;f<8;f++)for(var u=0;u<3;u++){var k=f*3+u;s+='<rect x="'+(80+u*46)+'" y="'+(70+f*34)+'" width="40" height="24" fill="'+c[k]+'"'+(k===7?' stroke="#b8963e" stroke-width="4"':'')+'/>'}
+  document.getElementById('units').innerHTML=s})();
+
+/* ---------- catálogos ---------- */
+var NEG = [
+  ['planos','Venta sobre planos','Preventa o en construcción'],
+  ['terminado','Venta de entrega inmediata','Proyecto terminado'],
+  ['renta','Renta tradicional','Contratos de 12 meses'],
+  ['corta','Renta corta','Amoblado, tipo hotel o Airbnb']
+];
+var TIPO = [
+  ['vivienda','Vivienda','Apartamentos o casas'],
+  ['vis','Vivienda VIS / VIP','Con subsidio o tope de precio'],
+  ['inversion','Inversión','Apartaestudios y rentas'],
+  ['comercial','Oficinas o locales','Comercial y corporativo']
+];
+var Q = [
+  {id:'ritmo',step:1,q:'¿Cuántos proyectos lanzas al año?',o:[['1','1 proyecto','Mi primer o único lanzamiento'],['2-3','2 a 3','Lanzo de forma constante'],['4-6','4 a 6','Tengo varios frentes de venta'],['7+','Más de 6','Portafolio activo']]},
+  {id:'neg',step:2,q:'¿Qué vas a comercializar con la Sales App?',o:NEG},
+  {id:'tipo',step:2,q:'¿Qué tipo de proyecto es?',o:TIPO},
+  {id:'unid',step:3,q:'¿Cuántas unidades tiene el proyecto?',o:[['50','Menos de 50','Edificio boutique'],['150','50 a 150','Torre mediana'],['400','150 a 400','Varias torres o etapas'],['999','Más de 400','Macroproyecto']]},
+  {id:'insumo',step:4,q:'¿Qué material 3D tienes del proyecto?',o:[['unreal','Modelo de Unreal','El edificio o las tipologías'],['max','3ds Max, Lumion o renders','Imágenes y modelo de render'],['revit','Revit o IFC','Modelo BIM del proyecto'],['planos','Solo planos','PDF o DWG de tipologías']]},
+  {id:'files',step:4,files:true},
+  {id:'canales',step:5,chips:true},
+  {id:'contacto',step:6,contact:true}
+];
+var CANALES = ['Pauta en Instagram y Facebook','Portales inmobiliarios','Sala de ventas física','Referidos','Google','Ferias','WhatsApp'];
+var A = {files:{}, canales:[]};
+var qi = 0;
+function lab(id,v){var q=Q.filter(function(x){return x.id===id})[0];var o=q&&q.o&&q.o.filter(function(x){return x[0]===v})[0];return o?o[1]:''}
+function stage(n){[].forEach.call($('#steps').children,function(s,i){s.dataset.on=(i+1===n);s.dataset.done=(i+1<n)})}
+
+/* ---------- paquete recomendado (reglas programadas) ---------- */
+var PKG = {
+  esencial:{n:'Esencial',w:'2 semanas',b:['Formulario y recomendador conectados al inventario','Respuestas programadas por tipo de comprador','Agenda de citas con ficha por WhatsApp']},
+  recorrido:{n:'Recorrido 3D',w:'2 a 3 semanas',b:['Todo lo de Esencial','Recorrido 3D de cada tipología','Medición y asesor virtual con fotos de muebles']},
+  torre:{n:'Torre completa',w:'3 a 4 semanas',b:['Todo lo de Recorrido 3D','Edificio 3D con estado de cada unidad','Inventario en vivo por torre y etapa']}
+};
+function pkg(){
+  if(!A.insumo) return null;
+  if(A.insumo==='planos') return 'esencial';
+  if((A.unid==='400'||A.unid==='999') && A.insumo!=='planos') return 'torre';
+  if(A.insumo==='unreal' && A.neg!=='renta' && A.neg!=='corta') return 'torre';
+  return 'recorrido';
+}
+var NEED = {unreal:'el modelo de Unreal del edificio y de cada tipología',max:'el modelo de 3ds Max o Lumion y los renders',revit:'el modelo de Revit o IFC con las tipologías',planos:'los planos de cada tipología en PDF o DWG'};
+function respuesta(){
+  var n=A.neg, t=A.tipo, ej;
+  if(n==='planos') ej='Laura, la unidad de 3 habitaciones que te gustó está disponible en preventa'+(t==='vis'?' y aplica para subsidio':'')+'. Comprando en planos aseguras el precio de hoy. ¿Te separo una visita a la sala esta semana?';
+  else if(n==='terminado') ej='Laura, esta unidad tiene entrega inmediata: puedes visitarla y mudarte este mes. ¿Te agendo el recorrido presencial con un asesor?';
+  else if(n==='renta') ej='Laura, tenemos apartamentos disponibles desde el próximo mes. Te contamos requisitos, canon y fecha de entrega en una llamada de 10 minutos. ¿A qué hora te llamamos?';
+  else ej='Laura, el estudio amoblado se administra tipo hotel. Te enviamos la ocupación y el ingreso mensual estimado, y te agendamos una visita. ¿Qué día te queda bien?';
+  if(t==='inversion' && n!=='corta') ej+=' Te llevamos la proyección de rentabilidad a la cita.';
+  if(t==='comercial') ej=ej.replace('3 habitaciones','de 80 m²').replace('mudarte','instalar tu negocio');
+  return ej;
+}
+var ASK = {planos:'nombre · WhatsApp · presupuesto · día de visita',terminado:'nombre · WhatsApp · día de visita',renta:'nombre · WhatsApp · fecha de mudanza · ingresos',corta:'nombre · correo · monto a invertir'};
+
+/* ---------- preguntas ---------- */
+function drawQ(){
+  var q=Q[qi],tf=$('#tf');stage(q.step);$('#bar').style.width=(qi/Q.length*100)+'%';
+  var head='<span class="qn">Pregunta '+(qi+1)+' de '+Q.length+'</span>';
+  var back=qi?'<button class="link" id="back" type="button">← Atrás</button>':'';
+  if(q.files){
+    var slots=[['render','Renders o imágenes','Del edificio o de las tipologías'],['plano','Planos de tipologías','PDF, DWG o imagen'],['inv','Inventario y precios','Excel o PDF (opcional)']];
+    tf.innerHTML=head+'<h2>Sube lo que tengas del proyecto</h2><p class="hint">Con esto preparamos la propuesta. Si aún no lo tienes a mano, escribe una nota y sigue.</p>'+
+      slots.map(function(s){return '<div class="drop" data-slot="'+s[0]+'"><div class="head"><div><b>'+s[1]+'</b><small>'+s[2]+'</small></div><label class="upl">+ Subir<input type="file" multiple data-slot="'+s[0]+'" accept="'+(s[0]==='inv'?'.xlsx,.xls,.csv,.pdf':'image/*,.pdf,.dwg,.dxf')+'"></label></div><div class="thumbs" id="th-'+s[0]+'"></div></div>'}).join('')+
+      '<label class="f">Nombre del proyecto y nota (opcional)<textarea id="desc" rows="2" placeholder="Ej. Torre Palmas, 120 apartamentos, lanzamiento en febrero">'+esc(A.desc||'')+'</textarea></label>'+
+      '<div class="row"><button class="btn" id="next" type="button">Continuar</button>'+back+'<span class="note">Puedes arrastrar archivos a cada recuadro</span></div>';
+    slots.forEach(function(s){drawThumbs(s[0])});
+    tf.querySelectorAll('input[type=file]').forEach(function(inp){inp.onchange=function(e){addFiles(inp.dataset.slot,e.target.files);inp.value=''}});
+    tf.querySelectorAll('.drop').forEach(function(d){d.ondragover=function(e){e.preventDefault();d.classList.add('over')};d.ondragleave=function(){d.classList.remove('over')};d.ondrop=function(e){e.preventDefault();d.classList.remove('over');addFiles(d.dataset.slot,e.dataTransfer.files)}});
+    $('#desc').oninput=function(e){A.desc=e.target.value;drawSheet()};
+    $('#next').onclick=function(){qi++;drawQ()};
+  } else if(q.chips){
+    tf.innerHTML=head+'<h2>¿Por dónde te llegan los compradores hoy?</h2><p class="hint">Marca todos los que uses. Ahí ponemos el botón de la Sales App.</p><div class="chips">'+
+      CANALES.map(function(c){return '<button type="button" class="chip" data-v="'+esc(c)+'" aria-pressed="'+(A.canales.indexOf(c)>=0)+'">'+esc(c)+'</button>'}).join('')+'</div>'+
+      '<label class="f" style="max-width:260px">Asesores en sala<input id="ases" type="number" min="1" max="99" inputmode="numeric" value="'+esc(A.ases||'3')+'"></label>'+
+      '<div class="row"><button class="btn" id="next" type="button">Continuar</button>'+back+'</div>';
+    tf.querySelectorAll('.chip').forEach(function(b){b.onclick=function(){var v=b.dataset.v,i=A.canales.indexOf(v);if(i>=0)A.canales.splice(i,1);else A.canales.push(v);b.setAttribute('aria-pressed',i<0);drawSheet()}});
+    $('#ases').oninput=function(e){A.ases=e.target.value;drawSheet()};
+    $('#next').onclick=function(){if(!A.canales.length){toast('Marca al menos un canal');return}A.ases=$('#ases').value||'1';qi++;drawQ()};
+  } else if(q.contact){
+    tf.innerHTML=head+'<h2>¿A quién le enviamos la propuesta?</h2><div class="fields">'+
+      '<label class="f">Nombre<input id="c-n" autocomplete="name" value="'+esc(A.nombre||'')+'" placeholder="Antonio Restrepo"></label>'+
+      '<label class="f">Constructora<input id="c-e" autocomplete="organization" value="'+esc(A.empresa||'')+'" placeholder="Constructora del Valle"></label>'+
+      '<label class="f">Cargo<input id="c-r" value="'+esc(A.cargo||'')+'" placeholder="Director comercial"></label>'+
+      '<label class="f">WhatsApp<input id="c-w" type="tel" autocomplete="tel" value="'+esc(A.wa||'')+'" placeholder="+57 310 555 0166"></label>'+
+      '<label class="f">Correo<input id="c-m" type="email" autocomplete="email" value="'+esc(A.mail||'')+'" placeholder="antonio@constructora.co"></label>'+
+      '<label class="f">Ciudad del proyecto<input id="c-c" value="'+esc(A.ciudad||'')+'" placeholder="Cali"></label></div>'+
+      '<p class="err" id="c-err" hidden>Escribe tu nombre, tu constructora, un WhatsApp y un correo válido.</p>'+
+      '<div class="row"><button class="btn" id="go" type="button">Ver mi propuesta</button>'+back+'</div>';
+    $('#go').onclick=function(){var n=$('#c-n').value.trim(),e=$('#c-e').value.trim(),w=$('#c-w').value.trim(),m=$('#c-m').value.trim();
+      if(!n||!e||w.replace(/\D/g,'').length<7||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m)){$('#c-err').hidden=false;return}
+      A.nombre=n;A.empresa=e;A.cargo=$('#c-r').value.trim();A.wa=w;A.mail=m;A.ciudad=$('#c-c').value.trim();result()};
+  } else {
+    tf.innerHTML=head+'<h2>'+q.q+'</h2><div class="choices">'+q.o.map(function(x,i){return '<button type="button" class="choice" data-v="'+x[0]+'" aria-pressed="'+(A[q.id]===x[0])+'"><span class="key">'+'ABCD'[i]+'</span><span>'+x[1]+(x[2]?'<small>'+x[2]+'</small>':'')+'</span></button>'}).join('')+'</div><div class="row">'+back+'<span class="note">Toca una opción o usa las teclas A–D</span></div>';
+    tf.querySelectorAll('.choice').forEach(function(b){b.onclick=function(){A[q.id]=b.dataset.v;tf.querySelectorAll('.choice').forEach(function(x){x.setAttribute('aria-pressed',x===b)});drawSheet();setTimeout(function(){qi++;drawQ()},180)}});
+  }
+  if($('#back'))$('#back').onclick=function(){qi--;drawQ()};
+  drawSheet();
+}
+document.addEventListener('keydown',function(e){if(/INPUT|TEXTAREA/.test(e.target.tagName))return;var i='ABCD'.indexOf(e.key.toUpperCase());if(i<0)return;var b=$('#tf').querySelectorAll('.choice')[i];if(b)b.click()});
+function addFiles(slot,list){var arr=A.files[slot]||(A.files[slot]=[]);[].forEach.call(list,function(f){if(f.size>25e6){toast(f.name+' pesa más de 25 MB');return}var it={name:f.name,size:f.size,url:null};if(f.type.indexOf('image/')===0){var r=new FileReader();r.onload=function(){it.url=r.result;drawThumbs(slot)};r.readAsDataURL(f)}arr.push(it)});drawThumbs(slot);drawSheet()}
+function drawThumbs(slot){var box=$('#th-'+slot);if(!box)return;box.innerHTML='';(A.files[slot]||[]).forEach(function(it,i){var d=document.createElement('div');d.className='th';d.title=it.name;d.innerHTML=(it.url?'<img alt="'+esc(it.name)+'" src="'+it.url+'">':'<span>'+esc(it.name.split('.').pop().toUpperCase())+'<br>'+(it.size/1e6).toFixed(1)+' MB</span>')+'<button type="button" aria-label="Quitar '+esc(it.name)+'">×</button>';d.querySelector('button').onclick=function(){A.files[slot].splice(i,1);drawThumbs(slot);drawSheet()};box.append(d)})}
+function nFiles(){var n=0;for(var k in A.files)n+=A.files[k].length;return n}
+
+/* ---------- ficha en vivo ---------- */
+function drawSheet(){
+  function v(x,e){return x?'<dd>'+esc(x)+'</dd>':'<dd class="empty">'+(e||'Pendiente')+'</dd>'}
+  var p=pkg();
+  $('#sheet').innerHTML='<span class="lbl">Ficha del proyecto</span><h3>'+esc(A.empresa||'Tu constructora')+'</h3><dl>'+
+    '<dt>Ritmo</dt>'+v(A.ritmo&&lab('ritmo',A.ritmo)+' al año')+'<dt>Comercializa</dt>'+v(lab('neg',A.neg))+'<dt>Tipo</dt>'+v(lab('tipo',A.tipo))+
+    '<dt>Unidades</dt>'+v(lab('unid',A.unid))+'<dt>Material 3D</dt>'+v(lab('insumo',A.insumo))+'<dt>Archivos</dt>'+v(nFiles()?nFiles()+' subidos':'','Ninguno aún')+
+    '<dt>Canales</dt>'+v(A.canales.join(', '))+(A.ases?'<dt>Asesores</dt><dd>'+esc(A.ases)+'</dd>':'')+'</dl>'+
+    (p?'<div class="pk"><span>Paquete sugerido</span><b>'+PKG[p].n+'</b><span>Implementación en '+PKG[p].w+'</span></div>':'')+
+    '<p class="note">Esta ficha es la que recibe el equipo de Life City.</p>';
+}
+
+/* ---------- propuesta ---------- */
+function ficha(){
+  var p=PKG[pkg()];
+  return 'NUEVA SOLICITUD · SALA DE VENTAS VIRTUAL\n'+A.nombre+(A.cargo?' · '+A.cargo:'')+' · '+A.empresa+'\nWhatsApp: '+A.wa+'\nCorreo: '+A.mail+(A.ciudad?'\nCiudad: '+A.ciudad:'')+
+  '\n\nRITMO: '+lab('ritmo',A.ritmo)+' proyectos al año'+'\nCOMERCIALIZA: '+lab('neg',A.neg)+' · '+lab('tipo',A.tipo)+'\nUNIDADES: '+lab('unid',A.unid)+
+  '\nMATERIAL 3D: '+lab('insumo',A.insumo)+'\nARCHIVOS: '+(nFiles()?Object.keys(A.files).map(function(k){return A.files[k].map(function(x){return x.name}).join(', ')}).filter(Boolean).join(' | '):'ninguno')+
+  (A.desc?'\nNOTA: '+A.desc:'')+'\nCANALES: '+A.canales.join(', ')+'\nASESORES: '+A.ases+
+  '\n\nPAQUETE SUGERIDO: '+p.n+' ('+p.w+')';
+}
+function preview(){
+  var img=null;['render','plano'].some(function(k){return (A.files[k]||[]).some(function(it){if(it.url){img=it.url;return true}})});
+  var floors={'50':6,'150':10,'400':14,'999':18}[A.unid]||8, rows='';
+  var cols=['#9a948d','#2f9e5f','#d39b2a','#2f9e5f','#9a948d','#2f9e5f','#9a948d'];
+  var h=Math.min(16,Math.floor(150/floors));
+  for(var f=0;f<floors;f++)for(var u=0;u<3;u++)rows+='<rect x="'+(52+u*34)+'" y="'+(14+f*(h+3))+'" width="30" height="'+h+'" fill="'+cols[(f*3+u)%7]+'" stroke="#13201a" stroke-width=".8"/>';
+  var tower='<svg viewBox="0 0 220 '+(30+floors*(h+3))+'" aria-hidden="true"><polygon points="46,8 158,8 158,'+(20+floors*(h+3))+' 46,'+(20+floors*(h+3))+'" fill="#f8faf6" stroke="#13201a" stroke-width="2"/><polygon points="158,8 184,0 184,'+(12+floors*(h+3))+' 158,'+(20+floors*(h+3))+'" fill="#dfe7dd" stroke="#13201a" stroke-width="2"/>'+rows+'</svg>';
+  var proj=(A.desc&&A.desc.split(',')[0].trim())||A.empresa;
+  var tipo=A.tipo==='comercial'?['Local 101','Oficina 504','Oficina 802']:A.neg==='corta'||A.tipo==='inversion'?['Estudio 302','Estudio 507','Estudio 710']:['Apto 501','Apto 815','Apto 1203'];
+  return '<div class="pv" role="img" aria-label="Previsualización de la sala virtual del proyecto"><span class="wm">Vista previa</span>'+
+    '<div class="pv-bar"><i></i><i></i><i></i><span>'+esc(proj.toLowerCase().replace(/[^a-z0-9áéíóúñ]+/g,'-').replace(/^-|-$/g,''))+'.salavirtual · '+esc(lab('neg',A.neg))+'</span></div>'+
+    '<div class="pv-hero"><div style="min-width:0;display:flex;flex-direction:column;gap:6px"><span class="kicker">'+esc(A.empresa)+'</span><h4>'+esc(proj)+'</h4><p>'+esc(lab('tipo',A.tipo))+' · '+esc(lab('unid',A.unid))+' unidades'+(A.ciudad?' · '+esc(A.ciudad):'')+'</p><span class="pv-btn">Encuentra tu unidad</span></div>'+
+    '<div class="pv-img">'+(img?'<img alt="Render del proyecto" src="'+img+'">':tower)+'</div></div>'+
+    '<div class="pv-body"><div class="pv-c"><b>1 · Cuenta qué buscas</b><span>'+(A.neg==='renta'||A.neg==='corta'?'¿Para cuándo necesitas mudarte?':'¿Para vivir o para invertir?')+'</span><span class="pv-u">A · '+(A.neg==='renta'?'Este mes':A.neg==='corta'?'Para invertir':'Para vivir')+'</span><span class="pv-u">B · '+(A.neg==='renta'?'En 3 meses':A.neg==='corta'?'Para usarlo':'Para invertir')+'</span></div>'+
+    '<div class="pv-c"><b>2 · Tus unidades</b>'+tipo.map(function(t,i){return '<span class="pv-u">'+t+'<em>'+[94,88,81][i]+' %</em></span>'}).join('')+'</div>'+
+    '<div class="pv-c"><b>3 · Respuesta</b><span style="background:var(--sky-soft);border-radius:8px;padding:6px 8px">'+esc(respuesta().split('. ').slice(0,2).join('. '))+'.</span><span class="pv-btn">Agendar visita</span></div></div></div>';
+}
+function result(){
+  stage(6);$('#bar').style.width='100%';
+  var k=pkg(),p=PKG[k],first=A.nombre.split(' ')[0];
+  var plan=[['Semana 1','Arranque','Inventario, precios y '+NEED[A.insumo].replace(/^el |^los /,'')],['Semana 1–2',k==='esencial'?'Formulario':'3D a la web',k==='esencial'?'Preguntas y recomendador':'Optimización para celular y medición'],['Semana 2–3','Sales App','Respuestas programadas y agenda'],['Final','Salida','Capacitación de 1 hora y publicación']];
+  $('#tf').innerHTML='<div class="res"><span class="qn">Tu propuesta de implementación</span>'+
+    '<h2>'+esc(first)+', esta es la sala virtual para '+esc(A.empresa)+'</h2>'+
+    '<div class="reco"><b>Paquete recomendado para '+esc(lab('neg',A.neg).toLowerCase())+' de '+esc(lab('tipo',A.tipo).toLowerCase())+' ('+esc(lab('unid',A.unid).toLowerCase())+' unidades)</b>'+
+    '<div class="pkgs">'+Object.keys(PKG).map(function(id){var x=PKG[id];return '<div class="pkg'+(id===k?' on':'')+'">'+(id===k?'<span class="badge">Recomendado</span>':'')+'<span class="t">'+x.n+'</span><span class="w">'+x.w+'</span><ul>'+x.b.map(function(b){return '<li>'+b+'</li>'}).join('')+'</ul></div>'}).join('')+'</div>'+
+    '<div class="tl">'+plan.map(function(s){return '<div><b>'+s[0]+'</b>'+s[1]+': '+esc(s[2])+'</div>'}).join('')+'</div>'+
+    '<p><b>Lo que necesitamos de ti:</b> '+esc(NEED[A.insumo])+', el inventario con precios y estado de cada unidad, los horarios de la sala y el WhatsApp de tus '+esc(A.ases)+' asesores.</p></div>'+
+    '<div class="reco" style="border-color:var(--sky)"><b>Así le respondería la Sales App a un comprador de tu proyecto</b><div class="bub">'+esc(respuesta())+'</div><span class="note">Y le pide: '+ASK[A.neg]+'. Mensaje programado y aprobado por tu equipo, sin improvisar.</span></div>'+
+    '<div class="row"><a class="btn wa" id="wa" target="_blank" rel="noopener">Enviar mi solicitud por WhatsApp ↗</a><button class="btn line" id="copy" type="button">Copiar ficha</button></div>'+
+    '<details><summary class="note" style="cursor:pointer">Ver la ficha que recibe Life City</summary><div class="copybox" id="ficha" style="margin-top:8px"></div></details>'+
+    '<span class="qn">Previsualización</span><h2>Así se vería la sala virtual de '+esc(A.desc&&A.desc.split(',')[0].trim()||A.empresa)+'</h2>'+preview()+
+    '<div class="buy"><div><b>¿La quieres para tu proyecto?</b><p>Obtén tu sala virtual con el paquete '+esc(p.n)+'. Pagas con Wompi (tarjeta, PSE o Nequi) y arrancamos la implementación con tus insumos.</p></div>'+
+    (CONFIG.wompi?'<a class="btn gold" id="pay" href="'+CONFIG.wompi+'" target="_blank" rel="noopener">Obtenerla con Wompi ↗</a>':'<a class="btn gold" id="pay" target="_blank" rel="noopener">Pedir mi link de pago ↗</a>')+'</div>'+
+    '<button class="link" id="redo" type="button">Empezar de nuevo</button></div>';
+  $('#ficha').textContent=ficha();
+  $('#wa').href='https://wa.me/'+CONFIG.whatsapp+'?text='+encodeURIComponent(ficha());
+  if(!CONFIG.wompi)$('#pay').href='https://wa.me/'+CONFIG.whatsapp+'?text='+encodeURIComponent('Hola, quiero obtener la sala virtual ('+p.n+') para '+A.empresa+'. ¿Me envías el link de pago?');
+  // la página de redirección de Wompi personaliza el mensaje con esto
+  try{localStorage.setItem('lc-sala-pedido',JSON.stringify({nombre:A.nombre,empresa:A.empresa,proyecto:A.desc||'',paquete:p.n,insumo:A.insumo,unid:lab('unid',A.unid),neg:lab('neg',A.neg),at:Date.now()}))}catch(e){}
+  $('#copy').onclick=function(){var t=ficha();if(navigator.clipboard){navigator.clipboard.writeText(t).then(function(){toast('Ficha copiada')},function(){$('#ficha').closest('details').open=true;toast('Selecciona y copia la ficha')})}else{$('#ficha').closest('details').open=true}};
+  $('#redo').onclick=function(){qi=0;A={files:{},canales:[]};drawQ()};
+  drawSheet();
+  document.getElementById('implementar').scrollIntoView({block:'start'});
+}
+drawQ();
+</script>
+</body>
+</html>
