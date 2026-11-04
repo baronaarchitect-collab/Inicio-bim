@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Panel Life City</title>
+<meta name="description" content="Panel de Life City: importa proyectos, crea el Typeform y el recorrido, descarga los dashboards y orquesta los links de cada sala.">
+<meta name="robots" content="noindex">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="icon" href="../icons/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="./implementacion/kit.js"></script>
+<style>
+/* Layout: panel de trabajo. Arriba, de dónde traer proyectos (Sales App, sala de renders, archivo, Antonio). Debajo, una tarjeta por proyecto con cifras, links orquestados y descargas. */
+:root{
+  --bg:#0c110e; --surface:#141d17; --raise:#1b271f; --line:#283a2d;
+  --fg:#eef4ef; --soft:#c9dccd; --muted:#93ab99;
+  --green:#5fae74; --gold:#d4ae5a; --sky:#79b9d8; --err:#ff8a7a;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15.5px;line-height:1.5;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--display);font-weight:800;margin:0;text-transform:uppercase;text-wrap:balance}
+h1{font-size:clamp(34px,5vw,54px);line-height:.95}
+h2{font-size:26px;line-height:1}
+h3{font-size:22px;line-height:1.05}
+p{margin:0}
+.kicker{font:600 11.5px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--green)}
+.muted{color:var(--muted)}
+.top{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap;padding-block:20px 4px}
+.b{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1.5px solid var(--line);background:var(--raise);color:var(--fg);border-radius:6px;padding:8px 12px;font:700 14px var(--body);cursor:pointer;text-decoration:none;white-space:nowrap}
+.b:hover{border-color:var(--green)}
+.b.p{background:var(--gold);color:#16130a;border-color:var(--gold)}
+.b.sm{padding:5px 9px;font-size:13px}
+.b:disabled{opacity:.5;cursor:wait}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.src{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.src > div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.src p{font-size:13.5px;color:var(--muted);flex:1}
+.drop{border:1.5px dashed #4a5a4f}
+.drop.over{border-color:var(--gold)}
+.upl{position:relative;overflow:hidden}
+.upl input{position:absolute;opacity:0;width:1px;height:1px}
+.rlist{display:flex;flex-direction:column;gap:4px;max-height:120px;overflow-y:auto}
+.rlist button{text-align:left}
+.projs{display:flex;flex-direction:column;gap:14px}
+.proj{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:18px}
+.proj .head{display:flex;flex-direction:column;gap:8px;min-width:0}
+.tag{font:600 11px var(--mono);text-transform:uppercase;letter-spacing:.1em;border:1px solid var(--line);border-radius:99px;padding:2px 8px;width:fit-content;color:var(--soft)}
+.nums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.nums div{background:var(--raise);border-radius:8px;padding:8px 10px;min-width:0}
+.nums b{display:block;font:800 22px var(--display);color:var(--gold);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.nums span{font-size:12px;color:var(--muted)}
+.acts{display:flex;flex-wrap:wrap;gap:6px}
+.links{display:flex;flex-direction:column;gap:6px;min-width:0}
+.lk{display:grid;grid-template-columns:150px minmax(0,1fr) auto;gap:8px;align-items:center}
+.lk label{font:700 13px var(--body);color:var(--soft)}
+.lk label small{display:block;font-weight:500;color:var(--muted);font-size:11.5px}
+.lk input{background:var(--raise);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font:13.5px var(--mono);min-width:0;width:100%}
+.state{font:500 12.5px var(--mono);color:var(--muted)}
+.state.ok{color:var(--green)}.state.bad{color:var(--err)}
+.empty{border:1px dashed var(--line);border-radius:12px;padding:24px;text-align:center;color:var(--muted)}
+.flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font:600 12.5px var(--mono);color:var(--muted)}
+.flow span{background:var(--raise);border:1px solid var(--line);border-radius:99px;padding:3px 9px;color:var(--soft)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:700;font-size:14px;z-index:30;max-width:calc(100% - 32px)}
+@media (max-width:960px){.src{grid-template-columns:repeat(2,minmax(0,1fr))}.proj{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:560px){.src{grid-template-columns:minmax(0,1fr)}.lk{grid-template-columns:minmax(0,1fr) auto}.lk label{grid-column:1/-1}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div style="display:flex;flex-direction:column;gap:6px"><span class="kicker">Life City · solo para ti</span><h1>Panel de salas de ventas</h1>
+      <p class="muted" style="max-width:70ch">Trae un proyecto, crea su Typeform, descarga su dashboard sin pasar por el pago y deja en un solo lugar los links de cada pieza: Typeform, recorrido virtual, sala de renders, dashboard publicado y propuesta.</p></div>
+    <div class="flow" aria-label="Orden del flujo del comprador"><span>Typeform</span>→<span>Recorrido virtual</span>→<span>Sala de renders</span>→<span>Cita</span></div>
+  </header>
+
+  <section class="src" aria-label="Traer proyectos">
+    <div><span class="kicker">Sala de renders</span><h3>2D + render</h3><p>Proyectos guardados en este navegador desde la sala de ventas con renders.</p><div class="rlist" id="rlist"></div><a class="b sm" href="./renders/" target="_blank" rel="noopener">Abrir la sala de renders ↗</a></div>
+    <div class="drop" id="drop"><span class="kicker">Importar archivo</span><h3>Arrastra aquí</h3><p>.sala.zip de la sala de renders, proyecto.json, datos.js o el instalador .zip de un cliente.</p><label class="b upl">Elegir archivo<input type="file" id="file" accept=".zip,.json,.js"></label></div>
+    <div><span class="kicker">Sales App 3D</span><h3>Último pedido</h3><p>La implementación que se llenó en la Sales App de este navegador, con su modelo 3D.</p><button class="b" id="fromKit" type="button">Traer el último pedido</button></div>
+    <div><span class="kicker">Antonio</span><h3>La Vista de San Eduardo</h3><p>El proyecto de Antonio con su recorrido 3D en Netlify, el Typeform y la propuesta.</p><button class="b" id="fromAntonio" type="button">Agregar San Eduardo</button></div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>Proyectos</h2><button class="b sm" id="exportAll" type="button">Exportar todos los links (.json)</button></div>
+    <div class="projs" id="projs"></div>
+  </section>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+  var tt;function toast(m){var e=$('toast');e.textContent=m;e.hidden=false;clearTimeout(tt);tt=setTimeout(function(){e.hidden=true},3200)}
+  function cop(m){return '$'+Math.round(m).toLocaleString('es-CO')+' M'}
+  var BASE=location.href.replace(/[^/]*([?#].*)?$/,'');
+  var KEY='lc:panel:proyectos';
+  var LINKS=[['typeform','Typeform','Califica y recomienda'],['recorrido','Recorrido virtual','3D del apartamento'],['sala','Sala de renders','Fachada → piso → apto'],['dashboard','Dashboard publicado','Precios y estados'],['propuesta','Propuesta','Para el cliente']];
+
+  /* ---------- almacenamiento: proyectos en localStorage, archivos (modelo, fachada) en IndexedDB ---------- */
+  function lsGet(k){try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}}
+  function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){toast('El navegador no dejó guardar: libera espacio o exporta los links');return false}}
+  function idb(name,mode,fn){return new Promise(function(res){try{var rq=indexedDB.open(name,1);rq.onupgradeneeded=function(){rq.result.createObjectStore('files')};rq.onsuccess=function(){var tx=rq.result.transaction('files',mode),r=fn(tx.objectStore('files'));tx.oncomplete=function(){res(r&&'result' in r?r.result:null)};tx.onerror=function(){res(null)}};rq.onerror=function(){res(null)}}catch(e){res(null)}})}
+  var files={put:function(k,v){return idb('lc-panel','readwrite',function(s){s.put(v,k)})},get:function(k){return idb('lc-panel','readonly',function(s){return s.get(k)})},del:function(k){return idb('lc-panel','readwrite',function(s){s.delete(k)})}};
+  var P=lsGet(KEY)||[];
+  function save(){lsSet(KEY,P)}
+  function newId(){return 'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,5)}
+
+  /* ---------- traductores ---------- */
+  function fromRenders(S){
+    var U=(S.unidades||[]).map(function(u){var p=(S.pisos||[]).filter(function(x){return x.id===u.piso})[0]||{};
+      return {id:String(u.id),tipo:'apartamentos',piso:+p.nivel||1,area:+u.area||0,alcobas:u.alcobas,banos:u.banos,precio:Math.round((+u.precio||0)/1e6),estado:u.estado||'disponible'}});
+    var area=U.length?Math.round(U.reduce(function(s,u){return s+u.area},0)/U.length):60;
+    var prom=U.length?Math.round(U.reduce(function(s,u){return s+u.precio},0)/U.length):0;
+    return {v:1,slug:LCKit.slug(S.proyecto),proyecto:S.proyecto||'Proyecto',empresa:S.empresa||'',ciudad:S.ciudad||'',whatsapp:String(S.whatsapp||'').replace(/\D/g,''),
+      negocio:'planos',negocioN:'Venta sobre planos',espacios:[{id:'apartamentos',n:'Apartamentos',cant:U.length,area:area,precio:prom}],unidades:U,
+      paleta:(S.recorrido||{}).paleta||[],decisiones:(S.recorrido||{}).decisiones||[]};
+  }
+  function normalize(D){
+    D.unidades=(D.unidades||[]).map(function(u){return Object.assign({estado:'disponible'},u)});
+    D.espacios=D.espacios||[];D.slug=D.slug||LCKit.slug(D.proyecto);D.negocio=D.negocio||'planos';D.negocioN=D.negocioN||'Venta sobre planos';
+    return D;
+  }
+  function add(pedido,origen,links,blobs){
+    var p={id:newId(),origen:origen,creado:Date.now(),pedido:normalize(pedido),links:Object.assign({typeform:'',recorrido:'',sala:'',dashboard:'',propuesta:''},links||{}),archivos:{}};
+    var jobs=[];
+    if(blobs&&blobs.modelo){p.archivos.modelo=blobs.modelo.name;jobs.push(files.put(p.id+':modelo',blobs.modelo))}
+    if(blobs&&blobs.fachada){p.archivos.fachada=blobs.fachada.name;jobs.push(files.put(p.id+':fachada',blobs.fachada))}
+    return Promise.all(jobs).then(function(){P.unshift(p);save();draw();toast('Proyecto agregado: '+p.pedido.proyecto)});
+  }
+
+  /* ---------- fuente 1: sala de renders en este navegador ---------- */
+  function rendersList(){
+    var L=lsGet('lc:renders:proyectos')||[],box=$('rlist');
+    box.innerHTML=L.length?L.map(function(x){return '<button class="b sm" type="button" data-r="'+esc(x.id)+'">'+esc(x.proyecto||x.nombre||'Proyecto sin nombre')+'</button>'}).join(''):'<span class="state">No hay proyectos de la sala de renders en este navegador. Puedes importar su .sala.zip.</span>';
+    box.querySelectorAll('[data-r]').forEach(function(b){b.onclick=function(){
+      var S=lsGet('lc:renders:p:'+b.dataset.r);if(!S){toast('No se encontró ese proyecto');return}
+      var img=S.fachada&&S.fachada.img;
+      (img?idb('sr-sala-renders','readonly',function(s){return s.get(S.id+':'+img)}).then(function(r){return r||idb('sr-sala-renders','readonly',function(s){return s.get(img)})}):Promise.resolve(null))
+        .then(function(blob){return add(fromRenders(S),'Sala de renders',{sala:''},blob?{fachada:new File([blob],'fachada.'+ext(img))}:null)});
+    }});
+  }
+  function ext(n){return String(n||'').split('.').pop().toLowerCase()}
+
+  /* ---------- fuente 2: archivo ---------- */
+  function parseDatos(t){var m=t.indexOf('=');return JSON.parse(t.slice(m+1).trim().replace(/;\s*$/,''))}
+  function importFile(f){
+    var n=f.name.toLowerCase();
+    if(n.endsWith('.zip')){
+      return JSZip.loadAsync(f).then(function(z){
+        var pj=z.file('proyecto.json');
+        if(pj)return pj.async('string').then(function(t){var d=JSON.parse(t),S=d.proyecto||d,img=S.fachada&&S.fachada.img,fi=img&&z.file(img);
+          return (fi?fi.async('blob'):Promise.resolve(null)).then(function(b){return add(fromRenders(S),'Sala de renders (.sala.zip)',{},b?{fachada:new File([b],'fachada.'+ext(img))}:null)})});
+        var dj=z.file(/sitio\/datos\.js$/)[0]||z.file(/(^|\/)datos\.js$/)[0];
+        if(!dj)throw new Error('Ese .zip no es un proyecto de la sala de renders ni un instalador de Life City');
+        return dj.async('string').then(function(t){var D=parseDatos(t),dir=dj.name.replace(/datos\.js$/,''),mf=D.modelo&&z.file(dir+D.modelo.archivo);
+          if(D.pisos&&D.fachada&&!D.espacios){var im=z.file(dir+D.fachada.img);return (im?im.async('blob'):Promise.resolve(null)).then(function(b){return add(fromRenders(D),'Sala de renders (instalador)',{},b?{fachada:new File([b],'fachada.'+ext(D.fachada.img))}:null)})}
+          delete D.modelo;
+          return (mf?mf.async('blob'):Promise.resolve(null)).then(function(b){return add(D,'Instalador de cliente',D.links||{},b?{modelo:new File([b],mf.name.split('/').pop())}:null)})});
+      });
+    }
+    return f.text().then(function(t){
+      var D=n.endsWith('.js')?parseDatos(t):JSON.parse(t);
+      if(D.formato==='lc-sala-renders'||D.proyecto&&D.proyecto.pisos)D=D.proyecto;
+      if(D.pisos&&!D.espacios)return add(fromRenders(D),'Sala de renders (datos)');
+      if(!D.unidades)throw new Error('El archivo no trae unidades');
+      delete D.modelo;return add(D,'Archivo de datos',D.links||{});
+    });
+  }
+  $('file').onchange=function(e){var f=e.target.files[0];e.target.value='';if(f)importFile(f).catch(function(err){toast(err.message||'No se pudo leer el archivo')})};
+  var drop=$('drop');drop.ondragover=function(e){e.preventDefault();drop.classList.add('over')};drop.ondragleave=function(){drop.classList.remove('over')};
+  drop.ondrop=function(e){e.preventDefault();drop.classList.remove('over');var f=e.dataTransfer.files[0];if(f)importFile(f).catch(function(err){toast(err.message||'No se pudo leer el archivo')})};
+
+  /* ---------- fuente 3: Sales App ---------- */
+  $('fromKit').onclick=function(){LCKit.load().then(function(r){
+    if(!r.pedido){toast('No hay pedidos de la Sales App en este navegador');return}
+    var D=JSON.parse(JSON.stringify(r.pedido));
+    add(D,'Sales App 3D',{},r.model?{modelo:new File([r.model.blob],r.model.name)}:null);
+  })};
+
+  /* ---------- fuente 4: Antonio · La Vista de San Eduardo ---------- */
+  $('fromAntonio').onclick=function(){
+    var inv=[['U-201',585,'disponible'],['U-215',598,'reservado'],['U-501',612,'disponible'],['U-815',640,'disponible'],['U-1015',668,'disponible'],['U-1101',695,'disponible']];
+    var U=inv.map(function(x){return {id:x[0],tipo:'apartamentos',piso:parseInt(x[0].slice(2),10)>=1000?+x[0].slice(2,4):+x[0].slice(2,3),area:121,alcobas:3,banos:2,precio:x[1],estado:x[2]}});
+    add({v:1,proyecto:'La Vista de San Eduardo',empresa:'Constructora de Antonio',nombre:'Antonio',ciudad:'Cali',whatsapp:'573000000000',negocio:'planos',negocioN:'Venta sobre planos',entrega:'Dic. 2027',
+      espacios:[{id:'apartamentos',n:'Apartamentos',cant:U.length,area:121,precio:633}],unidades:U},'Antonio',
+      {typeform:BASE+'antonio/typeform.html',recorrido:'https://vista-san-eduardo.netlify.app/',sala:'',dashboard:'',propuesta:BASE+'antonio/propuesta.html'});
+  };
+
+  /* ---------- Typeform del proyecto (plantilla de Antonio con los datos del proyecto) ---------- */
+  var tplP=null;
+  function typeformHTML(D){
+    tplP=tplP||fetch(BASE+'antonio/typeform.html').then(function(r){if(!r.ok)throw new Error('No se pudo cargar la plantilla del Typeform');return r.text()});
+    return tplP.then(function(tpl){
+      var groups={};
+      D.unidades.forEach(function(u){var k=u.tipo+'|'+Math.round((+u.area||0)/5)*5+'|'+(u.alcobas||'');(groups[k]=groups[k]||[]).push(u)});
+      var zona=/norte/i.test(D.ciudad)?'Norte':/oeste/i.test(D.ciudad)?'Oeste':'Sur';
+      var nombres=(window.LCKit.ESPACIOS);
+      var props=Object.keys(groups).map(function(k,i){
+        var g=groups[k],u=g[0],area=Math.round(g.reduce(function(s,x){return s+(+x.area||0)},0)/g.length);
+        var disp=g.filter(function(x){return x.estado==='disponible'});var base=(disp.length?disp:g);
+        var precio=Math.min.apply(null,base.map(function(x){return +x.precio||0}))*1e6;
+        var hab=+u.alcobas||(area>=90?3:area>=50?2:1),lay=hab>=3?'A':hab===2?'B':'C';
+        var label=(nombres[u.tipo]&&nombres[u.tipo].n)||'Unidad';
+        var inv=D.negocio==='colaborativa'||D.negocio==='renta'||u.tipo==='apartaestudios';
+        return {id:'g'+i,n:D.proyecto+' · '+label.replace(/s$/,'')+' '+area+' m²',zona:zona,barrio:D.ciudad||zona,lay:lay,area:area,hab:hab,banos:+u.banos||(hab>=3?2:1),
+          precio:precio,renta:Math.round(precio*0.0055),rentaCorta:inv?Math.round(precio*0.0075):undefined,entrega:D.entrega||(D.negocio==='inmediata'?'Inmediata':'Por definir'),
+          sala:(D.empresa||'Sala de ventas')+' · '+(D.ciudad||''),tipo:inv?['inversion','vivienda']:['vivienda','inversion']};
+      });
+      var data={titulo:D.proyecto+' · Recorrido inteligente',config:{whatsappAsesor:D.whatsapp||'573173371577',director:(D.nombre||D.empresa||'el asesor').split(' ')[0]},props:props};
+      var inj='<script>window.LC_TYPEFORM='+JSON.stringify(data).replace(/</g,'\\u003c')+';<\/script>\n';
+      var at=tpl.indexOf('<script>\n/* ============ CONFIGURACIÓN');if(at<0)at=tpl.lastIndexOf('<script>');
+      return tpl.slice(0,at)+inj+tpl.slice(at);
+    });
+  }
+
+  /* ---------- descargas ---------- */
+  function dl(blob,name){var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},2000)}
+  function buildFor(p){
+    var D=JSON.parse(JSON.stringify(p.pedido));D.links=p.links;
+    return Promise.all([p.archivos.modelo?files.get(p.id+':modelo'):null,p.archivos.fachada?files.get(p.id+':fachada'):null,typeformHTML(D)]).then(function(r){
+      var ex={files:{'typeform.html':r[2]}};
+      if(r[1])ex.files['fachada.'+ext(p.archivos.fachada)]=r[1];
+      return LCKit.buildZip(D,r[0]?{name:p.archivos.modelo,blob:r[0]}:null,ex);
+    });
+  }
+
+  /* ---------- tarjetas ---------- */
+  function draw(){
+    rendersList();
+    var box=$('projs');
+    if(!P.length){box.innerHTML='<div class="empty">Todavía no hay proyectos. Tráelos desde la sala de renders, un archivo, la Sales App o agrega el de Antonio.</div>';return}
+    box.innerHTML=P.map(function(p){
+      var D=p.pedido,tot=D.unidades.reduce(function(s,u){return s+(+u.precio||0)},0),disp=D.unidades.filter(function(u){return u.estado==='disponible'}).length;
+      return '<article class="proj" data-id="'+p.id+'"><div class="head"><span class="tag">'+esc(p.origen)+'</span><h3>'+esc(D.proyecto)+'</h3><span class="muted">'+esc([D.empresa,D.ciudad,D.negocioN].filter(Boolean).join(' · '))+'</span>'+
+        '<div class="nums"><div><b>'+D.unidades.length+'</b><span>unidades</span></div><div><b>'+disp+'</b><span>disponibles</span></div><div><b>'+cop(tot)+'</b><span>inventario</span></div></div>'+
+        '<span class="state">'+(p.archivos.modelo?'Modelo 3D: '+esc(p.archivos.modelo):'Sin modelo 3D')+(p.archivos.fachada?' · Render de fachada':'')+'</span>'+
+        '<div class="acts"><button class="b p" type="button" data-a="zip">Descargar dashboard (.zip)</button><button class="b" type="button" data-a="tf">Crear Typeform</button><button class="b" type="button" data-a="tfopen">Ver Typeform ↗</button><button class="b" type="button" data-a="copy">Copiar links</button><button class="b sm" type="button" data-a="del">Quitar</button></div><span class="state" data-st></span></div>'+
+        '<div class="links"><span class="kicker">Links orquestados</span>'+LINKS.map(function(l){return '<div class="lk"><label for="'+p.id+'-'+l[0]+'">'+l[1]+'<small>'+l[2]+'</small></label><input id="'+p.id+'-'+l[0]+'" data-l="'+l[0]+'" type="url" placeholder="https://…" value="'+esc(p.links[l[0]]||'')+'"><a class="b sm" data-open="'+l[0]+'" target="_blank" rel="noopener"'+(p.links[l[0]]?' href="'+esc(p.links[l[0]])+'"':'')+'>Abrir ↗</a></div>'}).join('')+'</div></article>';
+    }).join('');
+    box.querySelectorAll('.proj').forEach(function(el){
+      var p=P.filter(function(x){return x.id===el.dataset.id})[0],st=el.querySelector('[data-st]');
+      function state(t,c){st.textContent=t;st.className='state'+(c?' '+c:'')}
+      el.querySelectorAll('[data-l]').forEach(function(inp){inp.onchange=function(){p.links[inp.dataset.l]=inp.value.trim();save();var a=el.querySelector('[data-open="'+inp.dataset.l+'"]');if(inp.value.trim())a.href=inp.value.trim();else a.removeAttribute('href')}});
+      el.querySelectorAll('[data-open]').forEach(function(a){a.onclick=function(e){if(!a.getAttribute('href')){e.preventDefault();toast('Pega primero el link de '+a.dataset.open)}}});
+      el.querySelector('[data-a="zip"]').onclick=function(){var b=this;b.disabled=true;state('Armando el dashboard…');
+        buildFor(p).then(function(out){dl(out.blob,out.filename);state('✓ '+out.filename+' descargado','ok')}).catch(function(e){state(e.message||'No se pudo armar','bad')}).then(function(){b.disabled=false})};
+      el.querySelector('[data-a="tf"]').onclick=function(){state('Creando el Typeform…');var D=JSON.parse(JSON.stringify(p.pedido));
+        typeformHTML(D).then(function(h){dl(new Blob([h],{type:'text/html'}),D.slug+'-typeform.html');state('✓ Typeform descargado. Publícalo y pega su link arriba.','ok')}).catch(function(e){state(e.message,'bad')})};
+      el.querySelector('[data-a="tfopen"]').onclick=function(){var w=window.open('','_blank');typeformHTML(JSON.parse(JSON.stringify(p.pedido))).then(function(h){var u=URL.createObjectURL(new Blob([h],{type:'text/html'}));if(w)w.location=u;else location.href=u}).catch(function(e){if(w)w.close();state(e.message,'bad')})};
+      el.querySelector('[data-a="copy"]').onclick=function(){var t=p.pedido.proyecto+'\n'+LINKS.map(function(l){return l[1]+': '+(p.links[l[0]]||'—')}).join('\n');
+        (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){toast('Links copiados')},function(){state(t)})};
+      el.querySelector('[data-a="del"]').onclick=function(){if(el.dataset.confirm!=='1'){el.dataset.confirm='1';state('Toca Quitar otra vez para confirmar','bad');return}
+        P=P.filter(function(x){return x!==p});save();files.del(p.id+':modelo');files.del(p.id+':fachada');draw()};
+    });
+  }
+  $('exportAll').onclick=function(){dl(new Blob([JSON.stringify(P.map(function(p){return {proyecto:p.pedido.proyecto,origen:p.origen,links:p.links}}),null,2)],{type:'application/json'}),'links-salas-life-city.json')};
+  draw();
+})();
+</script>
+</body>
+</html>

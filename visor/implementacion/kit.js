@@ -7,7 +7,8 @@
  *   LCKit.viewer(el, opts)          → visor 3D (modelo subido o torre generada con las unidades)
  *   LCKit.save(pedido, file)        → guarda el pedido (localStorage) y el modelo 3D (IndexedDB)
  *   LCKit.load()                    → Promise<{pedido, model}>
- *   LCKit.buildZip(pedido, model)   → Promise<Blob> con el instalador (sitio + dashboard + tutoriales)
+ *   LCKit.buildZip(pedido, model, extras) → Promise<{blob, filename}> con el instalador (sitio + dashboard + tutoriales)
+ *                                     extras.files: {'typeform.html': texto, 'fachada.jpg': Blob} se agregan a sitio/
  * Requiere THREE (r147, con GLTFLoader, OBJLoader y OrbitControls) para el visor y JSZip para el instalador.
  */
 (function () {
@@ -177,11 +178,17 @@
   function slug(s) { return String(s || 'proyecto').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'proyecto'; }
 
   /* ---------- instalador ---------- */
-  function buildZip(pedido, model) {
+  function buildZip(pedido, model, extras) {
     if (!window.JSZip) return Promise.reject(new Error('JSZip no cargó'));
     var zip = new window.JSZip(), name = slug(pedido.proyecto) + '-sala-virtual';
     var root = zip.folder(name), site = root.folder('sitio');
+    var files = (extras && extras.files) || {};
     var datos = Object.assign({}, pedido, { modelo: model ? { archivo: 'modelo.' + ext(model.name), ext: ext(model.name) } : null });
+    Object.keys(files).forEach(function (f) {
+      if (f === 'typeform.html') datos.typeform = f;
+      if (/^fachada\./.test(f)) datos.fachada = f;
+      site.file(f, files[f]);
+    });
     site.file('datos.js', 'window.SALA = ' + JSON.stringify(datos, null, 2) + ';\n');
     site.file('visor.js', '/* Visor 3D de la sala virtual · Life City */\nwindow.LCViewer = ' + viewer.toString() + ';\nvar COLOR = ' + JSON.stringify(COLOR) + ';\nwindow.LC_ESPACIOS = ' + JSON.stringify(ESPACIOS) + ';\n');
     site.file('index.html', SITE_HTML);
@@ -219,21 +226,21 @@
     'header{padding:18px 0;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.k{font:600 12px monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}' +
     '.grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:16px;align-items:start}.card{background:var(--s);border:1px solid var(--l);border-radius:10px;padding:14px;min-width:0}#v{border-radius:10px;overflow:hidden;background:linear-gradient(#e3ece4,#f6f8f4);border:1px solid var(--l);min-height:320px}' +
     '.tabs{display:flex;flex-wrap:wrap;gap:6px}.tabs button,.btn{border:1.5px solid var(--l);background:var(--s);border-radius:99px;padding:7px 12px;font:700 14px inherit;cursor:pointer}.tabs button[aria-pressed=true]{background:var(--g);color:#fff;border-color:var(--g)}' +
-    '.list{display:flex;flex-direction:column;gap:6px;max-height:380px;overflow:auto;margin-top:10px}.u{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;border:1.5px solid var(--l);border-radius:8px;padding:8px 10px;background:var(--s);cursor:pointer;text-align:left;font:inherit;color:inherit;width:100%}.u[aria-pressed=true]{border-color:var(--gold)}' +
+    '[hidden]{display:none!important}.list{display:flex;flex-direction:column;gap:6px;max-height:380px;overflow:auto;margin-top:10px}.u{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;border:1.5px solid var(--l);border-radius:8px;padding:8px 10px;background:var(--s);cursor:pointer;text-align:left;font:inherit;color:inherit;width:100%}.u[aria-pressed=true]{border-color:var(--gold)}' +
     '.u b{font-family:monospace}.u small{color:var(--mu)}.pill{font-size:11.5px;font-weight:700;border-radius:99px;padding:2px 8px}.disponible{background:#e0f0e6;color:#2f7d4f}.reservado{background:#f8ecd2;color:#9a6a10}.vendido{background:#eee;color:#888}' +
     '.btn.p{background:var(--g);color:#fff;border-color:var(--g);border-radius:6px;font-family:"Barlow Condensed",sans-serif;font-size:18px;text-transform:uppercase;letter-spacing:.05em}.f{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:700;color:var(--mu)}.f input,.f select{border:1px solid var(--l);border-radius:8px;padding:10px;font:16px inherit}' +
     '.row{display:flex;flex-wrap:wrap;gap:10px;align-items:end}.bub{background:var(--sky);border-radius:12px 12px 12px 3px;padding:12px;margin-top:10px}footer{padding:24px 0;color:var(--mu);font-size:13px}@media(max-width:820px){.grid{grid-template-columns:1fr}}</style>\n' +
     '<script src="' + CDN.three + '"><\/script><script src="' + CDN.gltf + '"><\/script><script src="' + CDN.obj + '"><\/script><script src="' + CDN.orbit + '"><\/script>\n' +
     '<script src="datos.js"><\/script><script src="visor.js"><\/script></head><body><div class="w">\n' +
-    '<header><div><span class="k" id="emp"></span><h1 id="proj"></h1><p id="sub" style="color:var(--soft);margin:6px 0 0"></p></div><a class="btn p" href="#cita">Agendar visita</a></header>\n' +
+    '<header><div><span class="k" id="emp"></span><h1 id="proj"></h1><p id="sub" style="color:var(--soft);margin:6px 0 0"></p></div><div class="row"><a class="btn" id="tf" href="typeform.html" hidden>Recorrido inteligente</a><a class="btn p" href="#cita">Agendar visita</a></div></header>\n' +
     '<div class="grid"><div id="v"></div><div class="card"><h3>Unidades</h3><div class="tabs" id="tabs"></div><div class="list" id="list"></div></div></div>\n' +
     '<section class="card" style="margin-top:16px" id="cita"><span class="k">Encuentra tu unidad</span><h2 style="margin:6px 0 10px">Cuéntanos qué buscas</h2>' +
     '<div class="row"><label class="f">Tipo<select id="q-t"></select></label><label class="f">Presupuesto (millones)<input id="q-p" type="number" inputmode="numeric" value="450"></label><label class="f">Nombre<input id="q-n" autocomplete="name"></label><label class="f">WhatsApp<input id="q-w" type="tel" autocomplete="tel"></label><button class="btn p" id="q-go" type="button">Ver mi recomendación</button></div><div id="q-r"></div></section>\n' +
     '<footer>Sala de ventas virtual · implementación de Life City BIM Management Hub</footer></div>\n' +
     '<script>(function(){var D=window.SALA;try{var o=JSON.parse(localStorage.getItem("lc-sala-datos:"+D.slug)||"null");if(o&&o.unidades)D.unidades=o.unidades}catch(e){}\n' +
-    'var E=window.LC_ESPACIOS,$=function(i){return document.getElementById(i)},cop=function(m){return "$"+Number(m).toLocaleString("es-CO")+" M"},sel=null,tipo="todos";\n' +
+    'var E=window.LC_ESPACIOS;(D.espacios||[]).forEach(function(e){if(!E[e.id])E[e.id]={n:e.n||e.id}});var $=function(i){return document.getElementById(i)},cop=function(m){return "$"+Number(m).toLocaleString("es-CO")+" M"},sel=null,tipo="todos";\n' +
     '$("emp").textContent=D.empresa;$("proj").textContent=D.proyecto;$("sub").textContent=(D.ciudad?D.ciudad+" · ":"")+D.unidades.length+" unidades · "+D.negocioN;\n' +
-    'var V=LCViewer($("v"),{units:D.unidades,modelUrl:D.modelo?D.modelo.archivo:null,modelExt:D.modelo?D.modelo.ext:null,onPick:function(u){pick(u.id)}});\n' +
+    'if(D.typeform)$("tf").hidden=false;var V=null;if(D.fachada&&!D.modelo){$("v").innerHTML="<img src=\\""+D.fachada+"\\" alt=\\"Render del proyecto\\" style=\\"display:block;width:100%;height:auto\\">"}else{V=LCViewer($("v"),{units:D.unidades,modelUrl:D.modelo?D.modelo.archivo:null,modelExt:D.modelo?D.modelo.ext:null,onPick:function(u){pick(u.id)}})}\n' +
     'var tipos=["todos"].concat(D.espacios.map(function(e){return e.id}));$("tabs").innerHTML=tipos.map(function(t){return "<button type=button data-t="+t+" aria-pressed="+(t===tipo)+">"+(t==="todos"?"Todas":E[t].n)+"</button>"}).join("");\n' +
     '$("tabs").onclick=function(e){var b=e.target.closest("button");if(!b)return;tipo=b.dataset.t;[].forEach.call($("tabs").children,function(x){x.setAttribute("aria-pressed",x===b)});list()};\n' +
     '$("q-t").innerHTML=D.espacios.map(function(e){return "<option value="+e.id+">"+E[e.id].n+"</option>"}).join("");\n' +

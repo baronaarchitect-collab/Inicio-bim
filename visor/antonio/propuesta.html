@@ -1,0 +1,155 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Implementación San Eduardo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: propuesta de una columna — resumen del sistema, flujo del cliente, plan de implementación por fechas, lo que aporta la constructora, resumen y CTA de pago */
+:root{
+  --bg:#f5f2ee; --surface:#ffffff; --sunk:#ece7e1; --fg:#211c18; --muted:#6a625b; --line:#ddd5cc;
+  --clay:#b5532f; --clay-soft:#f6e4db; --olive:#3f6b45; --olive-soft:#e2eee3; --ink:#26211d;
+  --display:"Fraunces",Georgia,serif; --body:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#15120f; --surface:#1e1a17; --sunk:#29231f; --fg:#f0ebe5; --muted:#ada49b; --line:#3a332d;
+  --clay:#ee8a63; --clay-soft:#3d251b; --olive:#8fc596; --olive-soft:#20301f; --ink:#0d0b09; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#15120f; --surface:#1e1a17; --sunk:#29231f; --fg:#f0ebe5; --muted:#ada49b; --line:#3a332d;
+  --clay:#ee8a63; --clay-soft:#3d251b; --olive:#8fc596; --olive-soft:#20301f; --ink:#0d0b09; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15.5px;line-height:1.55}
+.wrap{max-width:1000px;margin:0 auto;padding-block:36px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:44px}
+.eyebrow{font:600 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--clay)}
+h1,h2,h3{font-family:var(--display);font-weight:700;margin:0;text-wrap:balance}
+h1{font-size:clamp(30px,5.2vw,50px);line-height:1.06;margin-top:8px}
+h2{font-size:clamp(23px,3.4vw,32px);line-height:1.12}
+h3{font-size:18px;line-height:1.25}
+.lede{color:var(--muted);max-width:62ch;margin:12px 0 0;font-size:16.5px}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.meta span{background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:5px 12px;font-size:13px;font-weight:600}
+.sec-h{margin-bottom:16px}
+.sec-h p{margin:6px 0 0;color:var(--muted);max-width:62ch}
+/* flujo del cliente */
+.flow{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.flow li{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:6px;min-width:0;position:relative}
+.flow .n{width:28px;height:28px;border-radius:50%;background:var(--clay);color:#fff;display:grid;place-items:center;font:600 13px var(--mono)}
+.flow b{font-size:14.5px;line-height:1.3}
+.flow p{margin:0;font-size:13px;color:var(--muted)}
+/* plan */
+.plan{display:flex;flex-direction:column;gap:0;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--surface)}
+.phase{display:grid;grid-template-columns:150px minmax(0,1fr);gap:18px;padding:18px 20px;border-top:1px solid var(--line)}
+.phase:first-child{border-top:0}
+.when{font:600 13px var(--mono);color:var(--clay)}
+.when small{display:block;font:500 12px var(--body);color:var(--muted);margin-top:4px}
+.phase ul{margin:8px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:14.5px}
+.deliv{display:inline-block;margin-top:8px;font-size:12.5px;font-weight:700;background:var(--olive-soft);color:var(--olive);border-radius:7px;padding:3px 9px}
+/* aportes */
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px}
+.card ul{margin:10px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14.5px}
+.tech{font-size:13.5px;color:var(--muted);margin:10px 0 0}
+.tech code{font-family:var(--mono);font-size:12.5px;background:var(--sunk);padding:1px 5px;border-radius:4px}
+/* CTA */
+.cta{background:var(--ink);color:#f3eee8;border-radius:22px;padding:28px;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:24px;align-items:center}
+.cta .eyebrow{color:#f0b08f}
+.cta h2{color:#fff}
+.cta p{margin:10px 0 0;opacity:.88}
+.paybox{background:#fff;color:#1f1f1f;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.paybox b{font-size:15px}
+.paybox small{color:#5f6368;font-size:12.5px}
+.btn{border:0;background:var(--clay);color:#fff;font:700 16px var(--body);padding:14px 20px;border-radius:12px;cursor:pointer;display:inline-flex;gap:8px;align-items:center;justify-content:center;text-decoration:none}
+.btn.pp{background:#ffc439;color:#111}
+:focus-visible{outline:2px solid var(--clay);outline-offset:2px}
+.note{font-size:12.5px;color:var(--muted);margin:0}
+@media (max-width:900px){.flow{grid-template-columns:repeat(2,minmax(0,1fr))}.cta{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:640px){.two{grid-template-columns:minmax(0,1fr)}.phase{grid-template-columns:minmax(0,1fr);gap:6px}}
+@media (max-width:420px){.flow{grid-template-columns:minmax(0,1fr)}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Propuesta para Antonio · Director comercial</div>
+    <h1>Sala de ventas virtual para La Vista de San Eduardo, lista este mes</h1>
+    <p class="lede">Un solo sistema que califica al comprador, le muestra las unidades disponibles que encajan con él, lo deja recorrer y medir su apartamento en 3D y lo lleva a la sala con una cita y una ficha completa para tu asesor.</p>
+    <div class="meta"><span>Montaje: 19 al 31 de octubre de 2026</span><span>Modelo 3D desde Unreal Engine</span><span>Visor That Open + Three.js</span><span>Citas por WhatsApp</span></div>
+  </header>
+
+  <section>
+    <div class="sec-h"><h2>Lo que vive tu comprador</h2><p>Cinco pasos, del primer clic a la cita en sala.</p></div>
+    <ol class="flow">
+      <li><span class="n">1</span><b>Cuenta qué busca</b><p>Formulario tipo Typeform: vivienda o inversión, presupuesto, habitaciones y zona.</p></li>
+      <li><span class="n">2</span><b>Ve sus unidades</b><p>Le recomendamos las disponibles que encajan, con su porcentaje de afinidad.</p></li>
+      <li><span class="n">3</span><b>Entra al edificio</b><p>Ve la torre en 3D, elige la unidad y entra al apartamento con un botón.</p></li>
+      <li><span class="n">4</span><b>Recorre y mide</b><p>Mide paredes y espacios. La app le pregunta qué mueble necesita, si cabe y si tiene una foto.</p></li>
+      <li><span class="n">5</span><b>Agenda la cita</b><p>Escoge día y hora. Tu asesor recibe la ficha con medidas, respuestas y fotos.</p></li>
+    </ol>
+  </section>
+
+  <section>
+    <div class="sec-h"><h2>Plan de implementación</h2><p>Cuatro fases en dos semanas, con una entrega revisable al final de cada una.</p></div>
+    <div class="plan">
+      <div class="phase"><div class="when">19–20 oct<small>Fase 1 · Arranque</small></div><div><h3>Diagnóstico e insumos</h3>
+        <ul><li>Reunión de arranque con Antonio y el equipo de sala.</li><li>Recibimos inventario, precios, tipologías y el modelo de Unreal del edificio completo.</li><li>Definimos las preguntas del formulario y del recorrido.</li></ul>
+        <span class="deliv">Entrega: mapa del flujo aprobado</span></div></div>
+      <div class="phase"><div class="when">21–24 oct<small>Fase 2 · 3D</small></div><div><h3>Edificio y apartamentos en la web</h3>
+        <ul><li>Exportamos el edificio y cada tipología desde Unreal a glTF con materiales PBR.</li><li>Optimizamos texturas y geometría para que cargue en celular.</li><li>Montamos la transición edificio → apartamento, los estados de cada unidad y la medición con That Open.</li></ul>
+        <span class="deliv">Entrega: visor 3D con el edificio real</span></div></div>
+      <div class="phase"><div class="when">26–28 oct<small>Fase 3 · Venta</small></div><div><h3>Formulario, recomendador y citas</h3>
+        <ul><li>Formulario tipo Typeform conectado al inventario real.</li><li>Preguntas del asesor virtual durante el recorrido y subida de fotos de muebles.</li><li>Agenda con los horarios de la sala y envío de la ficha por WhatsApp al asesor.</li></ul>
+        <span class="deliv">Entrega: flujo completo en ambiente de prueba</span></div></div>
+      <div class="phase"><div class="when">29–31 oct<small>Fase 4 · Salida</small></div><div><h3>Pruebas, capacitación y lanzamiento</h3>
+        <ul><li>Pruebas con compradores reales y ajustes.</li><li>Capacitación de 1 hora al equipo de sala para leer las fichas.</li><li>Publicación en el dominio del proyecto y link para pauta e Instagram.</li></ul>
+        <span class="deliv">Entrega: sala virtual en producción</span></div></div>
+    </div>
+  </section>
+
+  <section class="two">
+    <div class="card"><h3>Lo que necesitamos de la constructora</h3>
+      <ul><li>Modelo de Unreal o 3ds Max del edificio completo y de cada tipología.</li><li>Inventario con estado de cada unidad (disponible, reservada, vendida) y precios.</li><li>Horarios de la sala y número de WhatsApp de los asesores.</li><li>Logo y colores del proyecto.</li></ul></div>
+    <div class="card"><h3>Cómo está hecho</h3>
+      <ul><li>Visor web sobre That Open Components y Three.js, sin instalar nada.</li><li>Modelos exportados de Unreal a glTF con materiales PBR, iluminación de ambiente y tono ACES.</li><li>Medición con la herramienta de longitudes de That Open, en metros.</li><li>Funciona en celular y computador.</li></ul>
+      <p class="tech">El demo usa el apartamento real exportado de Unreal: 145 archivos y 19 MB después de optimizar, frente a 243 MB del original.</p></div>
+  </section>
+
+  <section>
+    <div class="sec-h"><h2>Resumen</h2></div>
+    <div class="two">
+      <div class="card"><h3>Lo que gana la sala de ventas</h3><ul><li>Compradores que llegan a la cita sabiendo qué unidad quieren y si les caben sus muebles.</li><li>Fichas con medidas, respuestas y fotos antes de que el comprador entre a la sala.</li><li>Unidades disponibles visibles en 3D, actualizadas desde el inventario.</li></ul></div>
+      <div class="card"><h3>Lo que queda instalado</h3><ul><li>Formulario y recomendador conectados al inventario.</li><li>Edificio y apartamentos en 3D con recorrido, medición y preguntas.</li><li>Agenda de citas con ficha por WhatsApp para cada asesor.</li></ul></div>
+    </div>
+  </section>
+
+  <section class="cta" id="pagar">
+    <div>
+      <div class="eyebrow">Siguiente paso</div>
+      <h2>Montémosla este mes en La Vista de San Eduardo</h2>
+      <p>Con el pago reservamos el cupo de implementación y arrancamos el 19 de octubre. Al 31 de octubre la sala virtual queda en producción.</p>
+    </div>
+    <div class="paybox">
+      <b>Reserva la implementación</b>
+      <div id="paypal-container-F64YRAA8ESGXY"></div>
+      <a class="btn pp" id="ppfallback" href="https://www.paypal.com/ncp/payment/F64YRAA8ESGXY" target="_blank" rel="noopener" hidden>Pagar con PayPal ↗</a>
+      <small>Pago seguro con PayPal. Recibes la confirmación en tu correo.</small>
+    </div>
+  </section>
+  <p class="note">Las fechas suponen que los insumos de la Fase 1 llegan el 20 de octubre.</p>
+</div>
+
+<script
+  src="https://www.paypal.com/sdk/js?client-id=BAAwMWaLtA_WE3Al3WTZhvHGDiP1NuGusXOxcTlSxg5NVg0rIBfGV-HRoOYuCSM7XVRkV3RfmMAxSUT42o&components=hosted-buttons&disable-funding=venmo&currency=USD">
+</script>
+<script>
+  (function(){
+    function fallback(){document.getElementById('ppfallback').hidden=false}
+    try{
+      if(window.paypal&&paypal.HostedButtons){
+        paypal.HostedButtons({hostedButtonId:"F64YRAA8ESGXY"}).render("#paypal-container-F64YRAA8ESGXY").catch(fallback);
+      }else{fallback()}
+    }catch(e){fallback()}
+    // si el botón no aparece en 4 s (por ejemplo, el sitio bloquea scripts externos), mostrar el enlace directo
+    setTimeout(function(){var c=document.getElementById('paypal-container-F64YRAA8ESGXY');if(!c||!c.children.length)fallback()},4000);
+  })();
+</script>
+
+</body></html>
