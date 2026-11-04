@@ -73,6 +73,7 @@
   .price { border: 1px solid var(--gold); border-radius: 16px; padding: 22px; background: rgba(200,169,106,.06); }
   .price .big { font: 500 46px/1 'Cormorant Garamond', serif; margin: 8px 0 4px; }
   .note { font-size: 13px; color: var(--tx2); }
+  #mst-mail:not([hidden]) { display: grid; }
   .warn { border-left: 3px solid #e0a93b; background: rgba(224,169,59,.08); border-radius: 6px; padding: 10px 14px; font-size: 13.5px; color: #e9d3a6; margin: 12px 0 0; }
   .btn.sm { padding: 8px 14px; font-size: 13px; }
   .proj { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 28px; padding: 14px 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg2); }
@@ -217,6 +218,12 @@
         <div id="mst" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
           <button class="btn" style="width:100%" id="mst-go">Soy Life City · publicar sin pagar</button>
           <p class="note" id="mst-msg">Entra con tu correo master (Google) y pasas directo a descargar y publicar en Netlify.</p>
+          <div id="mst-mail" hidden style="gap:8px;margin-top:8px">
+            <input id="mst-e" type="email" placeholder="Correo master" autocomplete="username" style="font:inherit;padding:9px 11px;border-radius:8px;border:1px solid var(--line);background:transparent;color:inherit">
+            <input id="mst-p" type="password" placeholder="Contraseña" autocomplete="current-password" style="font:inherit;padding:9px 11px;border-radius:8px;border:1px solid var(--line);background:transparent;color:inherit">
+            <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="mst-in">Entrar</button><button class="btn" id="mst-new">Crear contraseña</button><button class="btn" id="mst-out">Usar otra cuenta</button></div>
+          </div>
+          <p class="note"><a href="#" id="mst-alt">¿No pasa nada con Google? Entra con correo y contraseña</a></p>
         </div>
       </div>
     </div>
@@ -316,8 +323,7 @@
     document.querySelectorAll('[data-next]').forEach(function (b) { b.onclick = function () { go(step + 1); }; });
     document.querySelectorAll('[data-prev]').forEach(function (b) { b.onclick = function () { go(step - 1, true); }; });
     $('pay').onclick = pay;
-    $('mst-go').onclick = master;
-    if (!SRNube.on(S)) $('mst').hidden = true;
+    if (SRNube.on(S)) mstInit(); else $('mst').hidden = true;
     if (!SR.wompi.configured(C.wompi)) {
       if (LOCAL) { $('pay').textContent = 'Simular pago (modo prueba)'; $('pay-msg').textContent = 'La llave de Wompi de Life City aún no está en config.js: en local este botón simula un pago aprobado.'; }
       else { $('pay').textContent = 'Solicitar por WhatsApp'; $('pay-msg').textContent = 'Te enviamos el link de pago y activamos tu descarga.'; }
@@ -389,17 +395,39 @@
   }
 
   // acceso master: el correo master de las reglas de Firebase publica sin pasar por Wompi
+  var mstOk = false;
+  function mstSay(t, bad) { var m = $('mst-msg'); m.innerHTML = t; m.style.color = bad ? '#e07b6a' : ''; m.style.fontWeight = bad ? '600' : ''; }
+  function mstCheck(user) {
+    if (mstOk || !user) return;
+    if (!user.emailVerified) { mstSay('<b>' + SR.esc(user.email) + '</b> no está verificado. Abre el correo de verificación que te llegó y vuelve a tocar el botón.', true); $('mst-go').disabled = false; return; }
+    mstSay('Verificando acceso master de ' + SR.esc(user.email) + '…');
+    SRNube.esMaster(S, user).then(function (ok) {
+      $('mst-go').disabled = false;
+      if (!ok) { mstSay('<b>' + SR.esc(user.email) + '</b> no es master. Toca <b>Usar otra cuenta</b> y entra con el correo master.', true); $('mst-mail').hidden = false; return; }
+      mstOk = true; save();
+      localStorage.setItem('lc:renders:pago', JSON.stringify({ ref: 'MASTER-' + Date.now().toString(36).toUpperCase(), cents: 0, moneda: C.moneda, pid: S.id, t: Date.now(), env: 'master' }));
+      mstSay('✓ Acceso master. Abriendo la descarga y Netlify…');
+      location.href = 'gracias.html?id=master';
+    });
+  }
+  function mstFail(e) { $('mst-go').disabled = false; mstSay(SR.esc(e.message), true); }
   function master() {
-    var b = $('mst-go'), msg = $('mst-msg');
-    save(); b.disabled = true; msg.textContent = 'Abriendo Google…';
-    SRNube.google(S).then(function (c) {
-      msg.textContent = 'Verificando acceso master…';
-      return SRNube.esMaster(S, c.user).then(function (ok) {
-        if (!ok) { b.disabled = false; msg.textContent = (c.user.email || 'Ese correo') + ' no es master. Entra con el correo master o paga la implementación.'; return; }
-        localStorage.setItem('lc:renders:pago', JSON.stringify({ ref: 'MASTER-' + Date.now().toString(36).toUpperCase(), cents: 0, moneda: C.moneda, pid: S.id, t: Date.now(), env: 'master' }));
-        location.href = 'gracias.html?id=master';
-      });
-    }).catch(function (e) { b.disabled = false; msg.textContent = e.message; });
+    save();
+    var u = SRNube.usuario(S);
+    if (u && u.emailVerified) { $('mst-go').disabled = true; return mstCheck(u); }
+    $('mst-go').disabled = true;
+    mstSay('Se abrió la ventana de Google: escoge tu cuenta master y acepta.');
+    // si la ventana no avisa al cerrarse, la sesión igual llega por onUser
+    setTimeout(function () { if (!mstOk && $('mst-go').disabled) { $('mst-go').disabled = false; mstSay('¿No pasó nada? Vuelve a tocar el botón, o entra con correo y contraseña abajo.', true); $('mst-mail').hidden = false; } }, 45000);
+    SRNube.google(S).then(function (c) { mstCheck(c.user); }, function (e) { mstFail(e); $('mst-mail').hidden = false; });
+  }
+  function mstInit() {
+    $('mst-go').onclick = master;
+    $('mst-alt').onclick = function (e) { e.preventDefault(); $('mst-mail').hidden = false; $('mst-e').focus(); };
+    $('mst-in').onclick = function () { SRNube.entrar(S, $('mst-e').value, $('mst-p').value).then(function (c) { mstCheck(c.user); }, mstFail); };
+    $('mst-new').onclick = function () { SRNube.crear(S, $('mst-e').value, $('mst-p').value).then(function (c) { mstSay('Te enviamos un correo de verificación a <b>' + SR.esc(c.user.email) + '</b>. Ábrelo y luego toca <b>Entrar</b>.'); }, mstFail); };
+    $('mst-out').onclick = function () { SRNube.salir(S).then(function () { mstSay('Sesión cerrada. Toca el botón y escoge la cuenta master.'); }); };
+    SRNube.onUser(S, function (u) { if (u && $('mst-go').disabled) mstCheck(u); }).catch(function () {});
   }
 
   function pay() {

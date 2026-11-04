@@ -18,7 +18,7 @@
 (function () {
   'use strict';
   var SDK = 'https://www.gstatic.com/firebasejs/10.12.2';
-  var COL = 'salasRenders', cache = {};
+  var COL = 'salasRenders', cache = {}, listo = {};
 
   function config(S) {
     var c = (S && S.firebase) || (window.LC_CONFIG && window.LC_CONFIG.firebase) || null;
@@ -34,7 +34,7 @@
     var k = c.projectId;
     if (!cache[k]) cache[k] = Promise.all([import(SDK + '/firebase-app.js'), import(SDK + '/firebase-auth.js'), import(SDK + '/firebase-firestore.js')]).then(function (m) {
       var app = m[0].getApps().filter(function (a) { return a.name === 'sr-' + k; })[0] || m[0].initializeApp(c, 'sr-' + k);
-      return { A: m[1], F: m[2], auth: m[1].getAuth(app), db: m[2].getFirestore(app) };
+      return (listo[k] = { A: m[1], F: m[2], auth: m[1].getAuth(app), db: m[2].getFirestore(app) });
     });
     return cache[k];
   }
@@ -55,7 +55,11 @@
 
   /* ---- sesión ---- */
   function onUser(S, cb) { return init(S).then(function (B) { return B.A.onAuthStateChanged(B.auth, cb); }); }
-  function google(S) { return init(S).then(function (B) { return B.A.signInWithPopup(B.auth, new B.A.GoogleAuthProvider()); }).catch(err); }
+  // la ventana de Google se abre en el mismo clic (si se espera algo antes, el navegador la bloquea)
+  function popup(B) { var g = new B.A.GoogleAuthProvider(); g.setCustomParameters({ prompt: 'select_account' }); return B.A.signInWithPopup(B.auth, g); }
+  function ya(S) { var c = config(S); return api.backend || (c && listo[c.projectId]) || null; }
+  function google(S) { var B = ya(S); return (B ? popup(B) : init(S).then(popup)).catch(err); }
+  function usuario(S) { var B = ya(S); return B ? B.auth.currentUser : null; }
   function entrar(S, e, p) { return init(S).then(function (B) { return B.A.signInWithEmailAndPassword(B.auth, low(e), p); }).catch(err); }
   function crear(S, e, p) {
     return init(S).then(function (B) {
@@ -64,11 +68,14 @@
   }
   function recordar(S, e) { return init(S).then(function (B) { return B.A.sendPasswordResetEmail(B.auth, low(e)); }).catch(err); }
   function verificar(S) { return init(S).then(function (B) { return B.auth.currentUser && B.A.sendEmailVerification(B.auth.currentUser); }).catch(err); }
+  function actual(S) { return init(S).then(function (B) { return B.auth.authStateReady ? B.auth.authStateReady().then(function () { return B.auth.currentUser; }) : B.auth.currentUser; }); }
   function salir(S) { return init(S).then(function (B) { return B.A.signOut(B.auth); }); }
   var MSG = {
     'auth/invalid-email': 'El correo no es válido.', 'auth/missing-password': 'Escribe la contraseña.',
     'auth/weak-password': 'La contraseña debe tener al menos 6 caracteres.', 'auth/email-already-in-use': 'Ese correo ya tiene cuenta. Entra con tu contraseña.',
     'auth/invalid-credential': 'Correo o contraseña incorrectos.', 'auth/wrong-password': 'Correo o contraseña incorrectos.', 'auth/user-not-found': 'No hay una cuenta con ese correo.',
+    'auth/popup-blocked': 'El navegador bloqueó la ventana de Google. Permite las ventanas emergentes de este sitio y vuelve a tocar el botón, o entra con correo y contraseña.',
+    'auth/cancelled-popup-request': 'Ya hay una ventana de Google abierta: termina en ella.',
     'auth/popup-closed-by-user': 'Cerraste la ventana de Google antes de terminar.', 'auth/too-many-requests': 'Demasiados intentos. Espera unos minutos.',
     'auth/unauthorized-domain': 'Este dominio no está autorizado en Firebase. El master debe agregarlo en Authentication → Settings → Authorized domains (mientras tanto entra con correo y contraseña).',
     'permission-denied': 'No tienes permiso para esto. Pídele acceso al master.'
@@ -142,7 +149,7 @@
 
   var api = {
     backend: null, config: config, id: id, on: function (S) { return !!(api.backend || config(S)); },
-    watch: watch, aplicar: aplicar, onUser: onUser, google: google, entrar: entrar, crear: crear, recordar: recordar, verificar: verificar, salir: salir,
+    watch: watch, aplicar: aplicar, onUser: onUser, google: google, entrar: entrar, crear: crear, recordar: recordar, verificar: verificar, salir: salir, actual: actual, usuario: usuario,
     rol: rol, esMaster: esMaster, activar: activar, setEstado: setEstado, accesos: accesos, separacion: separacion, separaciones: separaciones, revisar: revisar
   };
   window.SRNube = api;
