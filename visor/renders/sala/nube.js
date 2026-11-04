@@ -12,7 +12,7 @@
  *
  *   SRNube.config(S) · id(S) · on(S) · watch(S, cb) · aplicar(S, estados)
  *   SRNube.onUser(S, cb) · google(S) · entrar(S, correo, clave) · crear(S, correo, clave) · recordar(S, correo) · salir(S) · verificar(S)
- *   SRNube.rol(S, user) → 'master' | 'ventas' | null · activar(S, user) · setEstado(S, id, estado, user)
+ *   SRNube.rol(S, user) → 'master' | 'ventas' | null · esMaster(S, user) · activar(S, user) · setEstado(S, id, estado, user)
  *   SRNube.accesos.lista/agregar/quitar · separacion(S, datos) · separaciones(S, cb) · revisar(S, tx, estado, user)
  */
 (function () {
@@ -86,6 +86,11 @@
       });
     }).catch(function () { return null; });
   }
+  /* master sin sala: solo el master puede listar accesos (sirve para publicar implementaciones sin pagar) */
+  function esMaster(S, user) {
+    if (!user || !user.email || !user.emailVerified) return Promise.resolve(false);
+    return init(S).then(function (B) { return B.F.getDocs(B.F.collection(B.db, COL, '_master', 'accesos')).then(function () { return true; }, function () { return false; }); }).catch(function () { return false; });
+  }
   function estadosDe(S) { var o = {}; (S.unidades || []).forEach(function (u) { o[u.id] = u.estado; }); return o; }
   function activar(S, user) {
     return init(S).then(function (B) {
@@ -138,7 +143,7 @@
   var api = {
     backend: null, config: config, id: id, on: function (S) { return !!(api.backend || config(S)); },
     watch: watch, aplicar: aplicar, onUser: onUser, google: google, entrar: entrar, crear: crear, recordar: recordar, verificar: verificar, salir: salir,
-    rol: rol, activar: activar, setEstado: setEstado, accesos: accesos, separacion: separacion, separaciones: separaciones, revisar: revisar
+    rol: rol, esMaster: esMaster, activar: activar, setEstado: setEstado, accesos: accesos, separacion: separacion, separaciones: separaciones, revisar: revisar
   };
   window.SRNube = api;
 })();

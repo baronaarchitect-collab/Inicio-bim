@@ -139,6 +139,7 @@
 <script src="config.js"></script>
 <script>document.write('<script src="' + window.LC_CONFIG.kit + '"><\/script>');</script>
 <script src="sala/showroom.js"></script>
+<script src="sala/nube.js"></script>
 <script src="sala/netlify.js"></script>
 <script src="js/empaquetar.js"></script>
 <script>
@@ -153,6 +154,18 @@
     if (!S.proyecto || !(S.pisos || []).length) return fail('No encontramos tu proyecto en este navegador', 'Abre esta página en el mismo navegador donde subiste los renders. Si pagaste desde otro equipo, escríbenos con el número de transacción' + (id ? ' <b>' + esc(id) + '</b>' : '') + '.');
     var paid = null; try { paid = JSON.parse(localStorage.getItem(PAID) || 'null'); } catch (e) {}
     if (id === 'demo' && pend && pend.env === 'demo' && !SR.wompi.configured(C.wompi) && /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) return setTimeout(function () { approved({ id: 'DEMO-' + Date.now(), reference: pend.ref, amount_in_cents: pend.cents, status: 'APPROVED', payment_method_type: 'SIMULADO' }, true); }, 900);
+    if (id === 'master') {
+      $('sub').textContent = 'Verificando acceso master…';
+      var visto = false;
+      return SRNube.onUser(S, function (u) {
+        if (visto) return; visto = true;
+        if (!u) return fail('Entra como master', 'Vuelve al asistente y toca <b>Soy Life City · publicar sin pagar</b>. <a href="index.html#implementar">Ir al asistente</a>');
+        SRNube.esMaster(S, u).then(function (ok) {
+          if (!ok) return fail('Este correo no es master', esc(u.email) + ' no tiene acceso master. <a href="index.html#implementar">Volver al asistente</a>');
+          approved({ id: 'MASTER-' + Date.now().toString(36).toUpperCase(), reference: (pend && pend.ref) || 'MASTER', amount_in_cents: 0, status: 'APPROVED', payment_method_type: 'Acceso master · ' + u.email }, 'master');
+        });
+      }).catch(function (e) { fail('No se pudo verificar el acceso master', esc(e.message)); });
+    }
     if (!id && paid && (paid[S.id] || (!paid.porProyecto && paid.id))) return approved(paid[S.id] || paid, false, true);
     if (!id) return fail('Aún no hay un pago', 'Vuelve a la página de la implementación para pagar. <a href="index.html#implementar">Ir al asistente</a>');
     var env = q.get('env') === 'test' ? 'test' : q.get('env') === 'prod' ? 'prod' : (pend && pend.env) || SR.wompi.env(C.wompi.publicKey);
@@ -183,9 +196,9 @@
       all[S.id] = { id: t.id, reference: t.reference, amount_in_cents: t.amount_in_cents, status: t.status, payment_method_type: t.payment_method_type };
       localStorage.setItem(PAID, JSON.stringify(all)); localStorage.removeItem('lc:renders:pago');
     } catch (e) {}
-    $('h').innerHTML = again ? 'Tu sala de <em>' + esc(S.proyecto) + '</em>' : '¡Pago aprobado!<br><em>Tu sala está lista</em>';
-    $('sub').innerHTML = (again ? '' : 'La descarga del instalador empezó sola. ') + 'Ábrelo, entra a <b>ABRIR-DASHBOARD.html</b> y sigue el LEEME para publicarla. Abajo creas el recorrido 3D del apartamento.' + (demo ? '<br><span class="note">Pago simulado: falta poner la llave de Wompi en config.js.</span>' : '');
-    txCard(t, 'ok', demo ? 'Pago simulado' : 'Pago aprobado');
+    $('h').innerHTML = again ? 'Tu sala de <em>' + esc(S.proyecto) + '</em>' : demo === 'master' ? 'Acceso master<br><em>Tu sala está lista</em>' : '¡Pago aprobado!<br><em>Tu sala está lista</em>';
+    $('sub').innerHTML = (again ? '' : 'La descarga del instalador empezó sola. ') + 'Ábrelo, entra a <b>ABRIR-DASHBOARD.html</b> y sigue el LEEME para publicarla. Abajo creas el recorrido 3D del apartamento.' + (demo === true ? '<br><span class="note">Pago simulado: falta poner la llave de Wompi en config.js.</span>' : '');
+    txCard(t, 'ok', demo === 'master' ? 'Sin pago · master' : demo ? 'Pago simulado' : 'Pago aprobado');
     $('acts').innerHTML = '<button class="btn gold" id="dl">Descargar instalador</button><a class="btn" href="#recorrido">Crear el recorrido 3D ↓</a>';
     $('dl').onclick = function () { pack().then(LCPack.download); };
     $('acts').insertAdjacentHTML('beforeend', '<a class="btn" href="#netlify">Publicar en Netlify ↓</a>');

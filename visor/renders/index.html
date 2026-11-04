@@ -214,6 +214,10 @@
         <p class="note">Pago único · descarga inmediata al aprobarse el pago</p>
         <button class="btn gold" style="width:100%;margin-top:10px" id="pay">Pagar con Wompi</button>
         <p class="note" id="pay-msg"></p>
+        <div id="mst" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
+          <button class="btn" style="width:100%" id="mst-go">Soy Life City · publicar sin pagar</button>
+          <p class="note" id="mst-msg">Entra con tu correo master (Google) y pasas directo a descargar y publicar en Netlify.</p>
+        </div>
       </div>
     </div>
     <div class="nav"><button class="btn" data-prev>← Atrás</button></div>
@@ -225,6 +229,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="config.js"></script>
 <script src="sala/showroom.js"></script>
+<script src="sala/nube.js"></script>
 <script src="sala/editor.js"></script>
 <script src="sala/zonas.js"></script>
 <script src="js/empaquetar.js"></script>
@@ -311,6 +316,8 @@
     document.querySelectorAll('[data-next]').forEach(function (b) { b.onclick = function () { go(step + 1); }; });
     document.querySelectorAll('[data-prev]').forEach(function (b) { b.onclick = function () { go(step - 1, true); }; });
     $('pay').onclick = pay;
+    $('mst-go').onclick = master;
+    if (!SRNube.on(S)) $('mst').hidden = true;
     if (!SR.wompi.configured(C.wompi)) {
       if (LOCAL) { $('pay').textContent = 'Simular pago (modo prueba)'; $('pay-msg').textContent = 'La llave de Wompi de Life City aún no está en config.js: en local este botón simula un pago aprobado.'; }
       else { $('pay').textContent = 'Solicitar por WhatsApp'; $('pay-msg').textContent = 'Te enviamos el link de pago y activamos tu descarga.'; }
@@ -379,6 +386,20 @@
     SR.syncUnits(S);
     var P = JSON.parse(JSON.stringify(S));
     SR.mount($('preview'), P, { img: LCPack.img, onReserve: function () { return Promise.reject(new Error('Vista previa: en tu sitio publicado aquí el comprador pasa a Wompi a pagar la separación.')); } });
+  }
+
+  // acceso master: el correo master de las reglas de Firebase publica sin pasar por Wompi
+  function master() {
+    var b = $('mst-go'), msg = $('mst-msg');
+    save(); b.disabled = true; msg.textContent = 'Abriendo Google…';
+    SRNube.google(S).then(function (c) {
+      msg.textContent = 'Verificando acceso master…';
+      return SRNube.esMaster(S, c.user).then(function (ok) {
+        if (!ok) { b.disabled = false; msg.textContent = (c.user.email || 'Ese correo') + ' no es master. Entra con el correo master o paga la implementación.'; return; }
+        localStorage.setItem('lc:renders:pago', JSON.stringify({ ref: 'MASTER-' + Date.now().toString(36).toUpperCase(), cents: 0, moneda: C.moneda, pid: S.id, t: Date.now(), env: 'master' }));
+        location.href = 'gracias.html?id=master';
+      });
+    }).catch(function (e) { b.disabled = false; msg.textContent = e.message; });
   }
 
   function pay() {
