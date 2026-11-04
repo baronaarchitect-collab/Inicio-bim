@@ -25,6 +25,15 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == uid
         && get(/databases/$(database)/documents/users/$(uid)).data.get('checklistProUntil', timestamp.value(0)) > request.time;
     }
+    // Estudio de salas de ventas: cada usuario guarda y lee solo sus proyectos (Typeform, recorrido, dashboard, links).
+    match /users/{uid}/salas/{salaId} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.id == salaId
+        && request.resource.data.keys().hasAll(['datos', 'tipologias', 'unidades'])
+        && request.resource.data.unidades.size() <= 2000
+        && request.resource.data.tipologias.size() <= 60;
+    }
     // Links PRO (playbooks del marketplace, tablero de coordinación): solo lectura con acceso vigente.
     match /proLinks/{id} {
       allow read: if request.auth != null

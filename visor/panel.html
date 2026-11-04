@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Panel Life City</title>
-<meta name="description" content="Panel de Life City: importa proyectos, crea el Typeform y el recorrido, descarga los dashboards y orquesta los links de cada sala.">
+<title>Estudio de Salas Life City</title>
+<meta name="description" content="Estudio de Life City: crea por proyecto el Typeform, el recorrido virtual y el dashboard de la sala de ventas, importa la sala de renders y guarda todo en Firebase.">
 <meta name="robots" content="noindex">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="icon" href="../icons/icon.svg" type="image/svg+xml">
@@ -13,12 +13,15 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="./implementacion/kit.js"></script>
+<script src="./estudio/firebase-config.js"></script>
+<script src="./estudio/store.js"></script>
 <style>
-/* Layout: panel de trabajo. Arriba, de dónde traer proyectos (Sales App, sala de renders, archivo, Antonio). Debajo, una tarjeta por proyecto con cifras, links orquestados y descargas. */
+/* Layout: estudio de trabajo. Barra superior con la sesión (Firebase); columna izquierda con los proyectos y las fuentes;
+   derecha, el proyecto abierto en pestañas (Proyecto → Typeform → Recorrido virtual → Dashboard → Links), cada una pide lo que necesita. */
 :root{
   --bg:#0c110e; --surface:#141d17; --raise:#1b271f; --line:#283a2d;
   --fg:#eef4ef; --soft:#c9dccd; --muted:#93ab99;
-  --green:#5fae74; --gold:#d4ae5a; --sky:#79b9d8; --err:#ff8a7a;
+  --green:#5fae74; --gold:#d4ae5a; --sky:#79b9d8; --err:#ff8a7a; --warn:#e8b45a;
   --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
   --body:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,monospace;
@@ -26,246 +29,426 @@
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15.5px;line-height:1.5;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px;display:flex;flex-direction:column;gap:20px}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.wrap{max-width:1280px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px}
 h1,h2,h3{font-family:var(--display);font-weight:800;margin:0;text-transform:uppercase;text-wrap:balance}
-h1{font-size:clamp(34px,5vw,54px);line-height:.95}
+h1{font-size:clamp(30px,4vw,44px);line-height:.95}
 h2{font-size:26px;line-height:1}
-h3{font-size:22px;line-height:1.05}
+h3{font-size:19px;line-height:1.05}
 p{margin:0}
 .kicker{font:600 11.5px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--green)}
 .muted{color:var(--muted)}
-.top{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap;padding-block:20px 4px}
 .b{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1.5px solid var(--line);background:var(--raise);color:var(--fg);border-radius:6px;padding:8px 12px;font:700 14px var(--body);cursor:pointer;text-decoration:none;white-space:nowrap}
 .b:hover{border-color:var(--green)}
 .b.p{background:var(--gold);color:#16130a;border-color:var(--gold)}
 .b.sm{padding:5px 9px;font-size:13px}
 .b:disabled{opacity:.5;cursor:wait}
 :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
-.src{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-.src > div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px;min-width:0}
-.src p{font-size:13.5px;color:var(--muted);flex:1}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding-block:18px}
+.auth{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-end}
+.chip{font:600 12px var(--mono);border:1px solid var(--line);border-radius:99px;padding:4px 10px;color:var(--soft)}
+.chip.nube{border-color:var(--green);color:var(--green)}
+.chip.local{border-color:var(--warn);color:var(--warn)}
+.mail{display:flex;gap:6px;flex-wrap:wrap}
+.mail input{background:var(--raise);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font:14px var(--body);width:170px}
+.layout{display:grid;grid-template-columns:280px minmax(0,1fr);gap:18px;align-items:start}
+.side{display:flex;flex-direction:column;gap:12px;position:sticky;top:12px}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.plist{display:flex;flex-direction:column;gap:4px;max-height:42vh;overflow-y:auto}
+.pi{text-align:left;border:1.5px solid var(--line);background:var(--raise);color:var(--fg);border-radius:8px;padding:8px 10px;cursor:pointer;font:inherit;width:100%}
+.pi[aria-current="true"]{border-color:var(--gold)}
+.pi b{display:block;font-size:14.5px}
+.pi small{color:var(--muted);font-size:12px}
 .drop{border:1.5px dashed #4a5a4f}
 .drop.over{border-color:var(--gold)}
 .upl{position:relative;overflow:hidden}
 .upl input{position:absolute;opacity:0;width:1px;height:1px}
-.rlist{display:flex;flex-direction:column;gap:4px;max-height:120px;overflow-y:auto}
-.rlist button{text-align:left}
-.projs{display:flex;flex-direction:column;gap:14px}
-.proj{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:18px}
-.proj .head{display:flex;flex-direction:column;gap:8px;min-width:0}
-.tag{font:600 11px var(--mono);text-transform:uppercase;letter-spacing:.1em;border:1px solid var(--line);border-radius:99px;padding:2px 8px;width:fit-content;color:var(--soft)}
-.nums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.nums div{background:var(--raise);border-radius:8px;padding:8px 10px;min-width:0}
-.nums b{display:block;font:800 22px var(--display);color:var(--gold);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
-.nums span{font-size:12px;color:var(--muted)}
-.acts{display:flex;flex-wrap:wrap;gap:6px}
-.links{display:flex;flex-direction:column;gap:6px;min-width:0}
-.lk{display:grid;grid-template-columns:150px minmax(0,1fr) auto;gap:8px;align-items:center}
-.lk label{font:700 13px var(--body);color:var(--soft)}
+.main{min-width:0;display:flex;flex-direction:column;gap:14px}
+.phead{display:flex;justify-content:space-between;align-items:end;gap:10px;flex-wrap:wrap}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:8px}
+.tabs button{border:1.5px solid var(--line);background:var(--surface);color:var(--soft);border-radius:99px;padding:6px 12px;font:700 13.5px var(--body);cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.tabs button[aria-selected="true"]{background:var(--gold);color:#16130a;border-color:var(--gold)}
+.tabs .dot{width:8px;height:8px;border-radius:50%;background:var(--warn)}
+.tabs .dot.ok{background:var(--green)}
+.panel{display:flex;flex-direction:column;gap:14px}
+.need{background:#2a2210;border:1px solid #5a4a1c;border-radius:8px;padding:10px 12px;font-size:14px;color:#f3dfa8}
+.need.ok{background:#14261a;border-color:#2c5a38;color:#a9e0b8}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.f{display:flex;flex-direction:column;gap:4px;font-size:12.5px;font-weight:700;color:var(--muted);min-width:0}
+.f input,.f select,.f textarea,td input,td select{background:var(--raise);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font:14.5px var(--body);min-width:0;width:100%}
+.full{grid-column:1/-1}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table{width:100%;border-collapse:collapse;min-width:720px}
+th,td{text-align:left;padding:5px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font:600 11px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:var(--surface)}
+td input[type=number]{width:90px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tip{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:14px}
+.amb{display:flex;flex-direction:column;gap:5px}
+.amb .r{display:grid;grid-template-columns:minmax(0,1fr) 78px 78px 30px;gap:6px}
+.amb input{background:var(--raise);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;font:14px var(--body);min-width:0;width:100%}
+.x{border:0;background:none;color:var(--muted);cursor:pointer;font-size:17px}
+.plan{background:#f8faf6;border-radius:8px;padding:6px}
+.plan svg{display:block;width:100%;height:auto;max-height:240px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.stats div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px}
+.stats b{display:block;font:800 24px var(--display);color:var(--gold);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.stats span{font-size:12px;color:var(--muted)}
+.lk{display:grid;grid-template-columns:170px minmax(0,1fr) auto;gap:8px;align-items:center}
+.lk label{font:700 13.5px var(--body);color:var(--soft)}
 .lk label small{display:block;font-weight:500;color:var(--muted);font-size:11.5px}
 .lk input{background:var(--raise);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font:13.5px var(--mono);min-width:0;width:100%}
 .state{font:500 12.5px var(--mono);color:var(--muted)}
 .state.ok{color:var(--green)}.state.bad{color:var(--err)}
-.empty{border:1px dashed var(--line);border-radius:12px;padding:24px;text-align:center;color:var(--muted)}
-.flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font:600 12.5px var(--mono);color:var(--muted)}
-.flow span{background:var(--raise);border:1px solid var(--line);border-radius:99px;padding:3px 9px;color:var(--soft)}
+.empty{border:1px dashed var(--line);border-radius:12px;padding:34px;text-align:center;color:var(--muted);display:flex;flex-direction:column;gap:10px;align-items:center}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:700;font-size:14px;z-index:30;max-width:calc(100% - 32px)}
-@media (max-width:960px){.src{grid-template-columns:repeat(2,minmax(0,1fr))}.proj{grid-template-columns:minmax(0,1fr)}}
-@media (max-width:560px){.src{grid-template-columns:minmax(0,1fr)}.lk{grid-template-columns:minmax(0,1fr) auto}.lk label{grid-column:1/-1}}
+@media (max-width:980px){.layout{grid-template-columns:minmax(0,1fr)}.side{position:static}.tip{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:620px){.grid{grid-template-columns:minmax(0,1fr)}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.lk{grid-template-columns:minmax(0,1fr) auto}.lk label{grid-column:1/-1}.amb .r{grid-template-columns:minmax(0,1fr) 64px 64px 26px}}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header class="top">
-    <div style="display:flex;flex-direction:column;gap:6px"><span class="kicker">Life City · solo para ti</span><h1>Panel de salas de ventas</h1>
-      <p class="muted" style="max-width:70ch">Trae un proyecto, crea su Typeform, descarga su dashboard sin pasar por el pago y deja en un solo lugar los links de cada pieza: Typeform, recorrido virtual, sala de renders, dashboard publicado y propuesta.</p></div>
-    <div class="flow" aria-label="Orden del flujo del comprador"><span>Typeform</span>→<span>Recorrido virtual</span>→<span>Sala de renders</span>→<span>Cita</span></div>
+    <div style="display:flex;flex-direction:column;gap:4px"><span class="kicker">Life City · Estudio</span><h1>Salas de ventas por proyecto</h1></div>
+    <div class="auth" id="auth"></div>
   </header>
 
-  <section class="src" aria-label="Traer proyectos">
-    <div><span class="kicker">Sala de renders</span><h3>2D + render</h3><p>Proyectos guardados en este navegador desde la sala de ventas con renders.</p><div class="rlist" id="rlist"></div><a class="b sm" href="./renders/" target="_blank" rel="noopener">Abrir la sala de renders ↗</a></div>
-    <div class="drop" id="drop"><span class="kicker">Importar archivo</span><h3>Arrastra aquí</h3><p>.sala.zip de la sala de renders, proyecto.json, datos.js o el instalador .zip de un cliente.</p><label class="b upl">Elegir archivo<input type="file" id="file" accept=".zip,.json,.js"></label></div>
-    <div><span class="kicker">Sales App 3D</span><h3>Último pedido</h3><p>La implementación que se llenó en la Sales App de este navegador, con su modelo 3D.</p><button class="b" id="fromKit" type="button">Traer el último pedido</button></div>
-    <div><span class="kicker">Antonio</span><h3>La Vista de San Eduardo</h3><p>El proyecto de Antonio con su recorrido 3D en Netlify, el Typeform y la propuesta.</p><button class="b" id="fromAntonio" type="button">Agregar San Eduardo</button></div>
-  </section>
+  <div class="layout">
+    <aside class="side">
+      <div class="box"><div class="row" style="justify-content:space-between"><b>Proyectos</b><button class="b sm p" id="nuevo" type="button">+ Nuevo</button></div><div class="plist" id="plist"></div></div>
+      <div class="box drop" id="drop"><span class="kicker">Sala 14 · 2D + render</span><p class="muted" style="font-size:13.5px">Importa el JSON de la sala de renders (.sala.zip, proyecto.json o datos.js) como proyecto nuevo.</p><label class="b upl">Importar sala 14<input type="file" id="fileNew" accept=".zip,.json,.js"></label><div id="rlist" style="display:flex;flex-direction:column;gap:4px"></div></div>
+      <div class="box"><span class="kicker">Otras fuentes</span><button class="b" id="fromKit" type="button">Último pedido de la Sales App</button><button class="b" id="fromAntonio" type="button">La Vista de San Eduardo (Antonio)</button></div>
+    </aside>
 
-  <section style="display:flex;flex-direction:column;gap:12px">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>Proyectos</h2><button class="b sm" id="exportAll" type="button">Exportar todos los links (.json)</button></div>
-    <div class="projs" id="projs"></div>
-  </section>
+    <main class="main" id="main"></main>
+  </div>
 </div>
 <div class="toast" id="toast" hidden></div>
 
 <script>
 (function(){
+  'use strict';
   var $=function(id){return document.getElementById(id)};
   function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
-  var tt;function toast(m){var e=$('toast');e.textContent=m;e.hidden=false;clearTimeout(tt);tt=setTimeout(function(){e.hidden=true},3200)}
-  function cop(m){return '$'+Math.round(m).toLocaleString('es-CO')+' M'}
-  var BASE=location.href.replace(/[^/]*([?#].*)?$/,'');
-  var KEY='lc:panel:proyectos';
-  var LINKS=[['typeform','Typeform','Califica y recomienda'],['recorrido','Recorrido virtual','3D del apartamento'],['sala','Sala de renders','Fachada → piso → apto'],['dashboard','Dashboard publicado','Precios y estados'],['propuesta','Propuesta','Para el cliente']];
-
-  /* ---------- almacenamiento: proyectos en localStorage, archivos (modelo, fachada) en IndexedDB ---------- */
-  function lsGet(k){try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}}
-  function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){toast('El navegador no dejó guardar: libera espacio o exporta los links');return false}}
-  function idb(name,mode,fn){return new Promise(function(res){try{var rq=indexedDB.open(name,1);rq.onupgradeneeded=function(){rq.result.createObjectStore('files')};rq.onsuccess=function(){var tx=rq.result.transaction('files',mode),r=fn(tx.objectStore('files'));tx.oncomplete=function(){res(r&&'result' in r?r.result:null)};tx.onerror=function(){res(null)}};rq.onerror=function(){res(null)}}catch(e){res(null)}})}
-  var files={put:function(k,v){return idb('lc-panel','readwrite',function(s){s.put(v,k)})},get:function(k){return idb('lc-panel','readonly',function(s){return s.get(k)})},del:function(k){return idb('lc-panel','readwrite',function(s){s.delete(k)})}};
-  var P=lsGet(KEY)||[];
-  function save(){lsSet(KEY,P)}
-  function newId(){return 'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,5)}
-
-  /* ---------- traductores ---------- */
-  function fromRenders(S){
-    var U=(S.unidades||[]).map(function(u){var p=(S.pisos||[]).filter(function(x){return x.id===u.piso})[0]||{};
-      return {id:String(u.id),tipo:'apartamentos',piso:+p.nivel||1,area:+u.area||0,alcobas:u.alcobas,banos:u.banos,precio:Math.round((+u.precio||0)/1e6),estado:u.estado||'disponible'}});
-    var area=U.length?Math.round(U.reduce(function(s,u){return s+u.area},0)/U.length):60;
-    var prom=U.length?Math.round(U.reduce(function(s,u){return s+u.precio},0)/U.length):0;
-    return {v:1,slug:LCKit.slug(S.proyecto),proyecto:S.proyecto||'Proyecto',empresa:S.empresa||'',ciudad:S.ciudad||'',whatsapp:String(S.whatsapp||'').replace(/\D/g,''),
-      negocio:'planos',negocioN:'Venta sobre planos',espacios:[{id:'apartamentos',n:'Apartamentos',cant:U.length,area:area,precio:prom}],unidades:U,
-      paleta:(S.recorrido||{}).paleta||[],decisiones:(S.recorrido||{}).decisiones||[]};
-  }
-  function normalize(D){
-    D.unidades=(D.unidades||[]).map(function(u){return Object.assign({estado:'disponible'},u)});
-    D.espacios=D.espacios||[];D.slug=D.slug||LCKit.slug(D.proyecto);D.negocio=D.negocio||'planos';D.negocioN=D.negocioN||'Venta sobre planos';
-    return D;
-  }
-  function add(pedido,origen,links,blobs){
-    var p={id:newId(),origen:origen,creado:Date.now(),pedido:normalize(pedido),links:Object.assign({typeform:'',recorrido:'',sala:'',dashboard:'',propuesta:''},links||{}),archivos:{}};
-    var jobs=[];
-    if(blobs&&blobs.modelo){p.archivos.modelo=blobs.modelo.name;jobs.push(files.put(p.id+':modelo',blobs.modelo))}
-    if(blobs&&blobs.fachada){p.archivos.fachada=blobs.fachada.name;jobs.push(files.put(p.id+':fachada',blobs.fachada))}
-    return Promise.all(jobs).then(function(){P.unshift(p);save();draw();toast('Proyecto agregado: '+p.pedido.proyecto)});
-  }
-
-  /* ---------- fuente 1: sala de renders en este navegador ---------- */
-  function rendersList(){
-    var L=lsGet('lc:renders:proyectos')||[],box=$('rlist');
-    box.innerHTML=L.length?L.map(function(x){return '<button class="b sm" type="button" data-r="'+esc(x.id)+'">'+esc(x.proyecto||x.nombre||'Proyecto sin nombre')+'</button>'}).join(''):'<span class="state">No hay proyectos de la sala de renders en este navegador. Puedes importar su .sala.zip.</span>';
-    box.querySelectorAll('[data-r]').forEach(function(b){b.onclick=function(){
-      var S=lsGet('lc:renders:p:'+b.dataset.r);if(!S){toast('No se encontró ese proyecto');return}
-      var img=S.fachada&&S.fachada.img;
-      (img?idb('sr-sala-renders','readonly',function(s){return s.get(S.id+':'+img)}).then(function(r){return r||idb('sr-sala-renders','readonly',function(s){return s.get(img)})}):Promise.resolve(null))
-        .then(function(blob){return add(fromRenders(S),'Sala de renders',{sala:''},blob?{fachada:new File([blob],'fachada.'+ext(img))}:null)});
-    }});
-  }
+  var tt;function toast(m){var e=$('toast');e.textContent=m;e.hidden=false;clearTimeout(tt);tt=setTimeout(function(){e.hidden=true},3400)}
+  function cop(m){return '$'+Math.round(+m||0).toLocaleString('es-CO')+' M'}
   function ext(n){return String(n||'').split('.').pop().toLowerCase()}
+  function newId(){return 's'+Date.now().toString(36)+Math.random().toString(36).slice(2,5)}
+  function dl(blob,name){var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},2000)}
+  var BASE=location.href.replace(/[^/]*([?#].*)?$/,'');
+  var ESP=LCKit.ESPACIOS, S=LCStore;
+  var NEG={planos:'Venta sobre planos',inmediata:'Venta de entrega inmediata',colaborativa:'Inversión colaborativa',renta:'Renta'};
+  var LINKS=[['typeform','Typeform','Califica y recomienda'],['recorrido','Recorrido virtual','Planta navegable o 3D'],['sala','Sala de renders','Fachada → piso → apto'],['dashboard','Dashboard publicado','Precios y estados'],['propuesta','Propuesta','Para el cliente']];
+  var TABS=[['proyecto','Proyecto'],['typeform','Typeform'],['recorrido','Recorrido virtual'],['dashboard','Dashboard'],['links','Links']];
 
-  /* ---------- fuente 2: archivo ---------- */
-  function parseDatos(t){var m=t.indexOf('=');return JSON.parse(t.slice(m+1).trim().replace(/;\s*$/,''))}
-  function importFile(f){
-    var n=f.name.toLowerCase();
-    if(n.endsWith('.zip')){
-      return JSZip.loadAsync(f).then(function(z){
-        var pj=z.file('proyecto.json');
-        if(pj)return pj.async('string').then(function(t){var d=JSON.parse(t),S=d.proyecto||d,img=S.fachada&&S.fachada.img,fi=img&&z.file(img);
-          return (fi?fi.async('blob'):Promise.resolve(null)).then(function(b){return add(fromRenders(S),'Sala de renders (.sala.zip)',{},b?{fachada:new File([b],'fachada.'+ext(img))}:null)})});
-        var dj=z.file(/sitio\/datos\.js$/)[0]||z.file(/(^|\/)datos\.js$/)[0];
-        if(!dj)throw new Error('Ese .zip no es un proyecto de la sala de renders ni un instalador de Life City');
-        return dj.async('string').then(function(t){var D=parseDatos(t),dir=dj.name.replace(/datos\.js$/,''),mf=D.modelo&&z.file(dir+D.modelo.archivo);
-          if(D.pisos&&D.fachada&&!D.espacios){var im=z.file(dir+D.fachada.img);return (im?im.async('blob'):Promise.resolve(null)).then(function(b){return add(fromRenders(D),'Sala de renders (instalador)',{},b?{fachada:new File([b],'fachada.'+ext(D.fachada.img))}:null)})}
-          delete D.modelo;
-          return (mf?mf.async('blob'):Promise.resolve(null)).then(function(b){return add(D,'Instalador de cliente',D.links||{},b?{modelo:new File([b],mf.name.split('/').pop())}:null)})});
-      });
-    }
-    return f.text().then(function(t){
-      var D=n.endsWith('.js')?parseDatos(t):JSON.parse(t);
-      if(D.formato==='lc-sala-renders'||D.proyecto&&D.proyecto.pisos)D=D.proyecto;
-      if(D.pisos&&!D.espacios)return add(fromRenders(D),'Sala de renders (datos)');
-      if(!D.unidades)throw new Error('El archivo no trae unidades');
-      delete D.modelo;return add(D,'Archivo de datos',D.links||{});
-    });
-  }
-  $('file').onchange=function(e){var f=e.target.files[0];e.target.value='';if(f)importFile(f).catch(function(err){toast(err.message||'No se pudo leer el archivo')})};
-  var drop=$('drop');drop.ondragover=function(e){e.preventDefault();drop.classList.add('over')};drop.ondragleave=function(){drop.classList.remove('over')};
-  drop.ondrop=function(e){e.preventDefault();drop.classList.remove('over');var f=e.dataTransfer.files[0];if(f)importFile(f).catch(function(err){toast(err.message||'No se pudo leer el archivo')})};
-
-  /* ---------- fuente 3: Sales App ---------- */
-  $('fromKit').onclick=function(){LCKit.load().then(function(r){
-    if(!r.pedido){toast('No hay pedidos de la Sales App en este navegador');return}
-    var D=JSON.parse(JSON.stringify(r.pedido));
-    add(D,'Sales App 3D',{},r.model?{modelo:new File([r.model.blob],r.model.name)}:null);
-  })};
-
-  /* ---------- fuente 4: Antonio · La Vista de San Eduardo ---------- */
-  $('fromAntonio').onclick=function(){
-    var inv=[['U-201',585,'disponible'],['U-215',598,'reservado'],['U-501',612,'disponible'],['U-815',640,'disponible'],['U-1015',668,'disponible'],['U-1101',695,'disponible']];
-    var U=inv.map(function(x){return {id:x[0],tipo:'apartamentos',piso:parseInt(x[0].slice(2),10)>=1000?+x[0].slice(2,4):+x[0].slice(2,3),area:121,alcobas:3,banos:2,precio:x[1],estado:x[2]}});
-    add({v:1,proyecto:'La Vista de San Eduardo',empresa:'Constructora de Antonio',nombre:'Antonio',ciudad:'Cali',whatsapp:'573000000000',negocio:'planos',negocioN:'Venta sobre planos',entrega:'Dic. 2027',
-      espacios:[{id:'apartamentos',n:'Apartamentos',cant:U.length,area:121,precio:633}],unidades:U},'Antonio',
-      {typeform:BASE+'antonio/typeform.html',recorrido:'https://vista-san-eduardo.netlify.app/',sala:'',dashboard:'',propuesta:BASE+'antonio/propuesta.html'});
+  /* ===================== modelo del proyecto ===================== */
+  function blank(){return {id:newId(),v:2,origen:'Nuevo',creado:Date.now(),
+    datos:{proyecto:'',empresa:'',director:'',whatsapp:'',correo:'',ciudad:'Cali',zona:'Sur',negocio:'planos',entrega:'',salaDir:'',horarios:'Lunes a sábado · 9:00 a. m. a 6:00 p. m.',ticket:50,rentab:12},
+    tipologias:[],unidades:[],recorrido:{visitante:''},archivos:{},links:{typeform:'',recorrido:'',sala:'',dashboard:'',propuesta:''}}}
+  // ambientes base de las plantas de Antonio (m), se escalan al área de la tipología
+  var BASES={
+    1:{area:38,a:[['Espacio principal',6.2,4],['Cocina abierta',2.6,2.2],['Baño',1.8,2.2],['Balcón',1.8,2.2]]},
+    2:{area:58,a:[['Sala-comedor',4.8,3.8],['Cocina',3.6,2],['Balcón',3.6,1.8],['Habitación principal',3.6,3.2],['Baño',1.8,1.8],['Zona de ropas',1.8,1.4],['Habitación 2',3,3.2]]},
+    3:{area:82,a:[['Sala-comedor',5.6,4],['Cocina',2.6,2.4],['Balcón',1.8,2.4],['Habitación principal',4,4.2],['Baño principal',1.6,2],['Baño social',1.6,2.2],['Habitación 2',2.4,4.6],['Habitación 3 / estudio',2,4.6]]}
   };
+  function sugeridos(hab,area){var B=BASES[Math.max(1,Math.min(3,+hab||2))],k=Math.sqrt((+area||B.area)/B.area);
+    return B.a.map(function(x){return {n:x[0],w:Math.round(x[1]*k*20)/20,l:Math.round(x[2]*k*20)/20}})}
+  function tipo(p,id){return p.tipologias.filter(function(t){return t.id===id})[0]}
+  function nextTipId(p){var L='ABCDEFGHIJKLMNOPQRSTUVWXYZ';for(var i=0;i<L.length;i++)if(!tipo(p,L[i]))return L[i];return 'T'+p.tipologias.length}
+  function nuevaTip(p,o){var id=nextTipId(p);var t=Object.assign({id:id,nombre:'Tipo '+id,espacio:'apartamentos',area:68,hab:2,banos:2,precio:420,renta:2.3,para:'ambos'},o||{});t.ambientes=t.ambientes||sugeridos(t.hab,t.area);p.tipologias.push(t);return t}
+  /* agrupa unidades sueltas (área, alcobas, baños) en tipologías */
+  function tipsDesdeUnidades(p,U){
+    var g={};U.forEach(function(u){var k=(u.tipo||'apartamentos')+'|'+Math.round((+u.area||0)/4)*4+'|'+(u.alcobas||'')+'|'+(u.banos||'');(g[k]=g[k]||[]).push(u)});
+    Object.keys(g).sort(function(a,b){return (+a.split('|')[1])-(+b.split('|')[1])}).forEach(function(k){
+      var L=g[k],u=L[0],area=Math.round(L.reduce(function(s,x){return s+(+x.area||0)},0)/L.length),hab=+u.alcobas||(area>=90?3:area>=50?2:1);
+      var t=nuevaTip(p,{espacio:u.tipo&&ESP[u.tipo]?u.tipo:'apartamentos',area:area,hab:hab,banos:+u.banos||(hab>=3?2:1),precio:Math.round(L.reduce(function(s,x){return s+(+x.precio||0)},0)/L.length),renta:0});
+      t.nombre='Tipo '+t.id+' · '+area+' m²';t.renta=Math.round(t.precio*0.0055*10)/10;
+      L.forEach(function(x){x.tipologia=t.id});
+    });
+    p.unidades=U.map(function(u){return {id:String(u.id),tipologia:u.tipologia,piso:+u.piso||1,area:+u.area||0,precio:+u.precio||0,estado:u.estado||'disponible'}});
+  }
+  function fromRenders(S0,p){
+    p=p||blank();p.origen='Sala 14 · renders';
+    var U=(S0.unidades||[]).map(function(u){var f=(S0.pisos||[]).filter(function(x){return x.id===u.piso})[0]||{};
+      return {id:u.id,tipo:'apartamentos',piso:+f.nivel||1,area:+u.area||0,alcobas:u.alcobas,banos:u.banos,precio:Math.round((+u.precio||0)/1e6),estado:u.estado}});
+    var d=p.datos,nueva=!d.proyecto;d.proyecto=d.proyecto||S0.proyecto||'';d.empresa=d.empresa||S0.empresa||'';d.ciudad=(nueva&&S0.ciudad)||d.ciudad||S0.ciudad||'';d.whatsapp=d.whatsapp||String(S0.whatsapp||'').replace(/\D/g,'');
+    d.zona=/norte/i.test(d.ciudad)?'Norte':/oeste/i.test(d.ciudad)?'Oeste':d.zona;
+    p.tipologias=[];tipsDesdeUnidades(p,U);
+    p.sala14={pisos:(S0.pisos||[]).length,plantas:(S0.plantas||[]).length,separacion:S0.separacion,paleta:(S0.recorrido||{}).paleta||[],decisiones:(S0.recorrido||{}).decisiones||[]};
+    return p;
+  }
+  function fromPedido(D,origen){
+    var p=blank();p.origen=origen;var d=p.datos;
+    d.proyecto=D.proyecto||'';d.empresa=D.empresa||'';d.director=D.nombre||'';d.whatsapp=String(D.whatsapp||'').replace(/\D/g,'');d.correo=D.mail||'';d.ciudad=D.ciudad||'Cali';
+    d.negocio=NEG[D.negocio]?D.negocio:'planos';d.entrega=D.entrega||'';d.ticket=D.ticket||50;d.rentab=D.rentab||12;
+    tipsDesdeUnidades(p,(D.unidades||[]).map(function(u){return Object.assign({},u)}));
+    if(D.links)Object.assign(p.links,D.links);
+    return p;
+  }
 
-  /* ---------- Typeform del proyecto (plantilla de Antonio con los datos del proyecto) ---------- */
+  /* ===================== qué falta por pestaña ===================== */
+  function falta(p,tab){
+    var d=p.datos,m=[];
+    if(tab==='proyecto'){if(!d.proyecto)m.push('nombre del proyecto');if(!d.empresa)m.push('constructora');if((d.whatsapp||'').replace(/\D/g,'').length<10)m.push('WhatsApp de ventas con indicativo (57…)');if(!d.ciudad)m.push('ciudad');if(!d.salaDir)m.push('dirección de la sala de ventas')}
+    if(tab==='typeform'){if(!p.tipologias.length)m.push('al menos una tipología');p.tipologias.forEach(function(t){if(!(t.area>0))m.push('área de '+t.nombre);if(!(t.precio>0))m.push('precio de '+t.nombre)});if((d.whatsapp||'').replace(/\D/g,'').length<10)m.push('WhatsApp (pestaña Proyecto)')}
+    if(tab==='recorrido'){if(!p.tipologias.length)m.push('tipologías (pestaña Typeform)');p.tipologias.forEach(function(t){var ok=(t.ambientes||[]).filter(function(a){return a.n&&a.w>0&&a.l>0});if(ok.length<2)m.push('ambientes de '+t.nombre)})}
+    if(tab==='dashboard'){if(!p.unidades.length)m.push('unidades (importa la sala 14 o créalas desde las tipologías)');if(p.unidades.some(function(u){return !(u.precio>0)}))m.push('precio de todas las unidades')}
+    return m;
+  }
+
+  /* ===================== Typeform y recorrido (plantilla de Antonio) ===================== */
+  function rid(n,used,i){var s=n.toLowerCase(),c;
+    if(/sala|estar|espacio principal|social$/.test(s)&&!/baño/.test(s))c='sala';else if(/cocina/.test(s))c='cocina';else if(/balc|terraza/.test(s))c='balcon';
+    else if(/principal/.test(s)&&!/baño|espacio/.test(s))c='hab1';else if(/habitaci|alcoba|cuarto/.test(s))c=!used.hab1?'hab1':!used.hab2?'hab2':'estudio';
+    else if(/estudio|oficina/.test(s))c='estudio';else if(/baño|bano/.test(s))c=!used.bano1?'bano1':'bano2';else if(/ropas/.test(s))c='ropas';else if(/hall|pasillo/.test(s))c='hall';else c='r'+i;
+    if(used[c])c=c+'_'+i;used[c]=1;return c}
+  function pack(amb){
+    var used={},R=(amb||[]).filter(function(a){return a.n&&a.w>0&&a.l>0}).map(function(a,i){return {id:rid(a.n,used,i),n:a.n,w:Math.round(a.w*100),h:Math.round(a.l*100)}});
+    if(!R.length)return {w:600,h:400,rooms:[]};
+    var tot=R.reduce(function(s,r){return s+r.w*r.h},0),W=Math.max(Math.max.apply(null,R.map(function(r){return r.w})),Math.round(Math.sqrt(tot)*1.3));
+    var order=R.slice().sort(function(a,b){return b.h-a.h}),x=0,y=0,rh=0,mw=0;
+    order.forEach(function(r){if(x>0&&x+r.w>W){y+=rh;x=0;rh=0}r.x=x;r.y=y;x+=r.w;rh=Math.max(rh,r.h);mw=Math.max(mw,x)});
+    return {w:mw,h:y+rh,rooms:R};
+  }
+  function datosTypeform(p,modo){
+    var d=p.datos,zona=d.zona||'Sur';
+    var props=p.tipologias.map(function(t){
+      var U=p.unidades.filter(function(u){return u.tipologia===t.id}),disp=U.filter(function(u){return u.estado==='disponible'});
+      var precio=(disp.length?Math.min.apply(null,disp.map(function(u){return +u.precio||0})):+t.precio||0)*1e6;
+      var inv=t.para==='inversion'||t.para==='ambos'||d.negocio==='colaborativa'||d.negocio==='renta',viv=t.para!=='inversion';
+      return {id:t.id,n:(d.proyecto||'Proyecto')+' · '+t.nombre,zona:zona,barrio:d.ciudad||zona,lay:t.id,area:+t.area||0,hab:+t.hab||1,banos:+t.banos||1,precio:precio,
+        renta:Math.round((+t.renta||precio/1e6*0.0055)*1e6),rentaCorta:inv?Math.round((+t.renta||precio/1e6*0.0055)*1.35*1e6):undefined,
+        entrega:d.entrega||(d.negocio==='inmediata'?'Inmediata':'Por definir'),sala:'Sala '+(d.proyecto||'de ventas')+' · '+(d.salaDir||d.ciudad||''),
+        tipo:[viv?'vivienda':null,inv?'inversion':null].filter(Boolean)};
+    });
+    var layouts={};p.tipologias.forEach(function(t){layouts[t.id]=pack(t.ambientes)});
+    return {titulo:(d.proyecto||'Proyecto')+(modo==='recorrido'?' · Recorrido virtual':' · Recorrido inteligente'),inicio:modo==='recorrido'?'recorrido':'',visitante:(p.recorrido||{}).visitante||'',
+      config:{whatsappAsesor:(d.whatsapp||'573173371577').replace(/\D/g,''),director:(d.director||d.empresa||'el asesor').split(' ')[0]},props:props,layouts:layouts};
+  }
   var tplP=null;
-  function typeformHTML(D){
-    tplP=tplP||fetch(BASE+'antonio/typeform.html').then(function(r){if(!r.ok)throw new Error('No se pudo cargar la plantilla del Typeform');return r.text()});
+  function htmlAntonio(p,modo){
+    tplP=tplP||fetch(BASE+'antonio/typeform.html').then(function(r){if(!r.ok)throw new Error('No se pudo cargar la plantilla de Antonio');return r.text()});
     return tplP.then(function(tpl){
-      var groups={};
-      D.unidades.forEach(function(u){var k=u.tipo+'|'+Math.round((+u.area||0)/5)*5+'|'+(u.alcobas||'');(groups[k]=groups[k]||[]).push(u)});
-      var zona=/norte/i.test(D.ciudad)?'Norte':/oeste/i.test(D.ciudad)?'Oeste':'Sur';
-      var nombres=(window.LCKit.ESPACIOS);
-      var props=Object.keys(groups).map(function(k,i){
-        var g=groups[k],u=g[0],area=Math.round(g.reduce(function(s,x){return s+(+x.area||0)},0)/g.length);
-        var disp=g.filter(function(x){return x.estado==='disponible'});var base=(disp.length?disp:g);
-        var precio=Math.min.apply(null,base.map(function(x){return +x.precio||0}))*1e6;
-        var hab=+u.alcobas||(area>=90?3:area>=50?2:1),lay=hab>=3?'A':hab===2?'B':'C';
-        var label=(nombres[u.tipo]&&nombres[u.tipo].n)||'Unidad';
-        var inv=D.negocio==='colaborativa'||D.negocio==='renta'||u.tipo==='apartaestudios';
-        return {id:'g'+i,n:D.proyecto+' · '+label.replace(/s$/,'')+' '+area+' m²',zona:zona,barrio:D.ciudad||zona,lay:lay,area:area,hab:hab,banos:+u.banos||(hab>=3?2:1),
-          precio:precio,renta:Math.round(precio*0.0055),rentaCorta:inv?Math.round(precio*0.0075):undefined,entrega:D.entrega||(D.negocio==='inmediata'?'Inmediata':'Por definir'),
-          sala:(D.empresa||'Sala de ventas')+' · '+(D.ciudad||''),tipo:inv?['inversion','vivienda']:['vivienda','inversion']};
-      });
-      var data={titulo:D.proyecto+' · Recorrido inteligente',config:{whatsappAsesor:D.whatsapp||'573173371577',director:(D.nombre||D.empresa||'el asesor').split(' ')[0]},props:props};
-      var inj='<script>window.LC_TYPEFORM='+JSON.stringify(data).replace(/</g,'\\u003c')+';<\/script>\n';
+      var inj='<script>window.LC_TYPEFORM='+JSON.stringify(datosTypeform(p,modo)).replace(/</g,'\\u003c')+';<\/script>\n';
       var at=tpl.indexOf('<script>\n/* ============ CONFIGURACIÓN');if(at<0)at=tpl.lastIndexOf('<script>');
       return tpl.slice(0,at)+inj+tpl.slice(at);
     });
   }
+  function abrir(p,modo){var w=window.open('','_blank');htmlAntonio(p,modo).then(function(h){var u=URL.createObjectURL(new Blob([h],{type:'text/html'}));if(w)w.location=u;else location.href=u}).catch(function(e){if(w)w.close();toast(e.message)})}
+  function slug(p){return LCKit.slug(p.datos.proyecto||'proyecto')}
 
-  /* ---------- descargas ---------- */
-  function dl(blob,name){var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},2000)}
-  function buildFor(p){
-    var D=JSON.parse(JSON.stringify(p.pedido));D.links=p.links;
-    return Promise.all([p.archivos.modelo?files.get(p.id+':modelo'):null,p.archivos.fachada?files.get(p.id+':fachada'):null,typeformHTML(D)]).then(function(r){
-      var ex={files:{'typeform.html':r[2]}};
-      if(r[1])ex.files['fachada.'+ext(p.archivos.fachada)]=r[1];
-      return LCKit.buildZip(D,r[0]?{name:p.archivos.modelo,blob:r[0]}:null,ex);
+  /* ===================== dashboard / instalador ===================== */
+  function pedidoKit(p){
+    var d=p.datos,agg={};
+    var U=p.unidades.map(function(u){var t=tipo(p,u.tipologia)||{};var e=t.espacio||'apartamentos';(agg[e]=agg[e]||[]).push(u);
+      return {id:u.id,tipo:e,piso:+u.piso||1,area:+u.area||+t.area||0,alcobas:t.hab,banos:t.banos,precio:+u.precio||0,estado:u.estado||'disponible'}});
+    return {v:1,creado:new Date().toISOString(),slug:slug(p),proyecto:d.proyecto,empresa:d.empresa,nombre:d.director,mail:d.correo,ciudad:d.ciudad,whatsapp:(d.whatsapp||'').replace(/\D/g,''),
+      negocio:d.negocio,negocioN:NEG[d.negocio],ticket:d.ticket,rentab:d.rentab,entrega:d.entrega,
+      espacios:Object.keys(agg).map(function(k){var L=agg[k];return {id:k,n:(ESP[k]||{n:k}).n,cant:L.length,area:Math.round(L.reduce(function(s,u){return s+(+u.area||0)},0)/L.length),precio:Math.round(L.reduce(function(s,u){return s+(+u.precio||0)},0)/L.length)}}),
+      unidades:U,links:p.links,tipologias:p.tipologias.map(function(t){return {id:t.id,nombre:t.nombre,area:t.area,hab:t.hab,banos:t.banos}})};
+  }
+  function instalador(p){
+    return Promise.all([p.archivos.modelo?S.files.get(p.id+':modelo'):null,p.archivos.fachada?S.files.get(p.id+':fachada'):null,
+      p.tipologias.length?htmlAntonio(p,'typeform'):null,p.tipologias.length?htmlAntonio(p,'recorrido'):null]).then(function(r){
+      var f={};if(r[2])f['typeform.html']=r[2];if(r[3])f['recorrido.html']=r[3];if(r[1])f['fachada.'+ext(p.archivos.fachada)]=r[1];
+      return LCKit.buildZip(pedidoKit(p),r[0]?{name:p.archivos.modelo,blob:r[0]}:null,{files:f});
     });
   }
 
-  /* ---------- tarjetas ---------- */
+  /* ===================== importar sala 14 / instalador ===================== */
+  function parseDatos(t){var i=t.indexOf('=');return JSON.parse(t.slice(i+1).trim().replace(/;\s*$/,''))}
+  // devuelve {S: datos de la sala de renders} o {D: pedido del kit}, más la fachada o el modelo si vienen
+  function leerArchivo(f){
+    var n=f.name.toLowerCase();
+    if(n.endsWith('.zip'))return JSZip.loadAsync(f).then(function(z){
+      var pj=z.file('proyecto.json');
+      if(pj)return pj.async('string').then(function(t){var d=JSON.parse(t),S0=d.proyecto||d,img=S0.fachada&&S0.fachada.img,fi=img&&z.file(img);
+        return (fi?fi.async('blob'):Promise.resolve(null)).then(function(b){return {S:S0,fachada:b?new File([b],'fachada.'+ext(img)):null}})});
+      var dj=z.file(/sitio\/datos\.js$/)[0]||z.file(/(^|\/)datos\.js$/)[0];
+      if(!dj)throw new Error('Ese .zip no trae proyecto.json ni datos.js');
+      return dj.async('string').then(function(t){var D=parseDatos(t),dir=dj.name.replace(/datos\.js$/,'');
+        if(D.pisos&&!D.espacios){var im=D.fachada&&z.file(dir+D.fachada.img);return (im?im.async('blob'):Promise.resolve(null)).then(function(b){return {S:D,fachada:b?new File([b],'fachada.'+ext(D.fachada.img)):null}})}
+        var mf=D.modelo&&z.file(dir+D.modelo.archivo);return (mf?mf.async('blob'):Promise.resolve(null)).then(function(b){return {D:D,modelo:b?new File([b],mf.name.split('/').pop()):null}});
+      });
+    });
+    return f.text().then(function(t){var D=n.endsWith('.js')?parseDatos(t):JSON.parse(t);
+      if(D.formato==='lc-sala-renders'||(D.proyecto&&D.proyecto.pisos))D=D.proyecto;
+      if(D.pisos&&!D.espacios)return {S:D};if(D.unidades)return {D:D};throw new Error('El archivo no trae unidades')});
+  }
+  function guardarArchivos(p,r){var j=[];
+    if(r.fachada){p.archivos.fachada=r.fachada.name;j.push(S.files.put(p.id+':fachada',r.fachada))}
+    if(r.modelo){p.archivos.modelo=r.modelo.name;j.push(S.files.put(p.id+':modelo',r.modelo))}
+    return Promise.all(j)}
+  function importarNuevo(f){return leerArchivo(f).then(function(r){var p=r.S?fromRenders(r.S):fromPedido(r.D,'Instalador importado');return guardarArchivos(p,r).then(function(){return agregar(p,'Importado: '+(p.datos.proyecto||'proyecto'))})})}
+
+  /* ===================== estado y guardado ===================== */
+  var P=[],cur=null,tab='proyecto',st={modo:'local'},saveT=null;
+  function agregar(p,msg){P.unshift(p);cur=p;tab='proyecto';return S.save(p).then(function(){draw();toast(msg||'Proyecto creado')},function(e){draw();toast(e.message)})}
+  function sucio(){clearTimeout(saveT);refreshNeed();var s=$('saved');if(s){s.textContent='Guardando…';s.className='state'}saveT=setTimeout(guardar,700)}
+  function guardar(){if(!cur)return;var p=cur;S.save(p).then(function(where){var s=$('saved');if(s&&p===cur){s.textContent='✓ Guardado '+(where==='nube'?'en la nube':'en este navegador');s.className='state ok'}drawList();drawDots()},function(e){var s=$('saved');if(s){s.textContent=e.message;s.className='state bad'}})}
+  function cargar(){return S.list().then(function(L){P=L;
+    // proyectos del panel anterior
+    try{var old=JSON.parse(localStorage.getItem('lc:panel:proyectos')||'[]');if(old.length&&st.modo==='local'){old.forEach(function(o){if(P.some(function(x){return x.legado===o.id}))return;var p=fromPedido(o.pedido,o.origen);p.legado=o.id;Object.assign(p.links,o.links||{});P.push(p);S.save(p)});}}catch(e){}
+    if(!cur||!P.some(function(x){return x.id===cur.id}))cur=P[0]||null;else cur=P.filter(function(x){return x.id===cur.id})[0];draw()})}
+
+  /* ===================== sesión ===================== */
+  function drawAuth(){
+    var a=$('auth');
+    if(st.usuario){a.innerHTML='<span class="chip nube">Nube · '+esc(st.usuario.correo||st.usuario.nombre)+'</span>'+(S.localCount()?'<button class="b sm" id="subir" type="button">Subir '+S.localCount()+(S.localCount()===1?' proyecto':' proyectos')+' de este navegador</button>':'')+'<button class="b sm" id="salir" type="button">Salir</button>';
+      $('salir').onclick=function(){S.salir()};if($('subir'))$('subir').onclick=function(){S.subirLocales().then(function(n){toast(n+' proyectos subidos a la nube');cargar()},function(e){toast(e.message)})};return}
+    if(!st.configurado){a.innerHTML='<span class="chip local">Guardado en este navegador</span><span class="muted" style="font-size:13px">Para guardar en la nube, pega tu configuración en <code>visor/estudio/firebase-config.js</code></span>';return}
+    a.innerHTML='<span class="chip local">Sin sesión · este navegador</span><button class="b sm p" id="g" type="button">Entrar con Google</button><form class="mail" id="mf"><input id="me" type="email" placeholder="correo" autocomplete="email" required><input id="mp" type="password" placeholder="clave" autocomplete="current-password" required minlength="6"><button class="b sm" type="submit">Entrar</button><button class="b sm" type="button" id="mc">Crear cuenta</button></form>';
+    $('g').onclick=function(){S.google().catch(function(e){toast(e.message)})};
+    $('mf').onsubmit=function(e){e.preventDefault();S.email($('me').value,$('mp').value,false).catch(function(err){toast(err.message)})};
+    $('mc').onclick=function(){if(!$('me').value||$('mp').value.length<6){toast('Escribe un correo y una clave de 6 o más caracteres');return}S.email($('me').value,$('mp').value,true).catch(function(err){toast(err.message)})};
+  }
+
+  /* ===================== vistas ===================== */
+  function drawList(){
+    $('plist').innerHTML=P.length?P.map(function(p){var f=TABS.slice(0,4).filter(function(t){return falta(p,t[0]).length}).length;
+      return '<button type="button" class="pi" data-id="'+p.id+'" aria-current="'+(cur&&p.id===cur.id)+'"><b>'+esc(p.datos.proyecto||'Proyecto sin nombre')+'</b><small>'+esc(p.origen)+' · '+p.unidades.length+' unidades · '+(f?f+' pestañas por completar':'completo')+'</small></button>'}).join(''):'<span class="state">Aún no hay proyectos.</span>';
+    $('plist').querySelectorAll('.pi').forEach(function(b){b.onclick=function(){cur=P.filter(function(x){return x.id===b.dataset.id})[0];draw()}});
+    var L=[];try{L=JSON.parse(localStorage.getItem('lc:renders:proyectos')||'[]')}catch(e){}
+    $('rlist').innerHTML=L.length?'<span class="state">En este navegador:</span>'+L.map(function(x){return '<button class="b sm" type="button" data-r="'+esc(x.id)+'">'+esc(x.proyecto||x.nombre||'Proyecto')+'</button>'}).join(''):'';
+    $('rlist').querySelectorAll('[data-r]').forEach(function(b){b.onclick=function(){var S0=null;try{S0=JSON.parse(localStorage.getItem('lc:renders:p:'+b.dataset.r))}catch(e){}if(!S0){toast('No se encontró ese proyecto');return}
+      var p=fromRenders(S0),img=S0.fachada&&S0.fachada.img;
+      rendersImg(S0.id,img).then(function(bl){return guardarArchivos(p,{fachada:bl?new File([bl],'fachada.'+ext(img)):null})}).then(function(){agregar(p,'Importado de la sala 14: '+p.datos.proyecto)})}});
+  }
+  function rendersImg(id,img){if(!img)return Promise.resolve(null);return new Promise(function(res){try{var rq=indexedDB.open('sr-sala-renders',1);rq.onupgradeneeded=function(){rq.result.createObjectStore('files')};rq.onsuccess=function(){var st2=rq.result.transaction('files').objectStore('files'),g=st2.get(id+':'+img);g.onsuccess=function(){if(g.result)return res(g.result);var g2=st2.get(img);g2.onsuccess=function(){res(g2.result||null)};g2.onerror=function(){res(null)}};g.onerror=function(){res(null)}};rq.onerror=function(){res(null)}}catch(e){res(null)}})}
+  function drawDots(){var b=document.querySelectorAll('.tabs [data-tab]');b.forEach(function(x){var d=x.querySelector('.dot');if(d)d.className='dot'+(falta(cur,x.dataset.tab).length?'':' ok')})}
   function draw(){
-    rendersList();
-    var box=$('projs');
-    if(!P.length){box.innerHTML='<div class="empty">Todavía no hay proyectos. Tráelos desde la sala de renders, un archivo, la Sales App o agrega el de Antonio.</div>';return}
-    box.innerHTML=P.map(function(p){
-      var D=p.pedido,tot=D.unidades.reduce(function(s,u){return s+(+u.precio||0)},0),disp=D.unidades.filter(function(u){return u.estado==='disponible'}).length;
-      return '<article class="proj" data-id="'+p.id+'"><div class="head"><span class="tag">'+esc(p.origen)+'</span><h3>'+esc(D.proyecto)+'</h3><span class="muted">'+esc([D.empresa,D.ciudad,D.negocioN].filter(Boolean).join(' · '))+'</span>'+
-        '<div class="nums"><div><b>'+D.unidades.length+'</b><span>unidades</span></div><div><b>'+disp+'</b><span>disponibles</span></div><div><b>'+cop(tot)+'</b><span>inventario</span></div></div>'+
-        '<span class="state">'+(p.archivos.modelo?'Modelo 3D: '+esc(p.archivos.modelo):'Sin modelo 3D')+(p.archivos.fachada?' · Render de fachada':'')+'</span>'+
-        '<div class="acts"><button class="b p" type="button" data-a="zip">Descargar dashboard (.zip)</button><button class="b" type="button" data-a="tf">Crear Typeform</button><button class="b" type="button" data-a="tfopen">Ver Typeform ↗</button><button class="b" type="button" data-a="copy">Copiar links</button><button class="b sm" type="button" data-a="del">Quitar</button></div><span class="state" data-st></span></div>'+
-        '<div class="links"><span class="kicker">Links orquestados</span>'+LINKS.map(function(l){return '<div class="lk"><label for="'+p.id+'-'+l[0]+'">'+l[1]+'<small>'+l[2]+'</small></label><input id="'+p.id+'-'+l[0]+'" data-l="'+l[0]+'" type="url" placeholder="https://…" value="'+esc(p.links[l[0]]||'')+'"><a class="b sm" data-open="'+l[0]+'" target="_blank" rel="noopener"'+(p.links[l[0]]?' href="'+esc(p.links[l[0]])+'"':'')+'>Abrir ↗</a></div>'}).join('')+'</div></article>';
-    }).join('');
-    box.querySelectorAll('.proj').forEach(function(el){
-      var p=P.filter(function(x){return x.id===el.dataset.id})[0],st=el.querySelector('[data-st]');
-      function state(t,c){st.textContent=t;st.className='state'+(c?' '+c:'')}
-      el.querySelectorAll('[data-l]').forEach(function(inp){inp.onchange=function(){p.links[inp.dataset.l]=inp.value.trim();save();var a=el.querySelector('[data-open="'+inp.dataset.l+'"]');if(inp.value.trim())a.href=inp.value.trim();else a.removeAttribute('href')}});
-      el.querySelectorAll('[data-open]').forEach(function(a){a.onclick=function(e){if(!a.getAttribute('href')){e.preventDefault();toast('Pega primero el link de '+a.dataset.open)}}});
-      el.querySelector('[data-a="zip"]').onclick=function(){var b=this;b.disabled=true;state('Armando el dashboard…');
-        buildFor(p).then(function(out){dl(out.blob,out.filename);state('✓ '+out.filename+' descargado','ok')}).catch(function(e){state(e.message||'No se pudo armar','bad')}).then(function(){b.disabled=false})};
-      el.querySelector('[data-a="tf"]').onclick=function(){state('Creando el Typeform…');var D=JSON.parse(JSON.stringify(p.pedido));
-        typeformHTML(D).then(function(h){dl(new Blob([h],{type:'text/html'}),D.slug+'-typeform.html');state('✓ Typeform descargado. Publícalo y pega su link arriba.','ok')}).catch(function(e){state(e.message,'bad')})};
-      el.querySelector('[data-a="tfopen"]').onclick=function(){var w=window.open('','_blank');typeformHTML(JSON.parse(JSON.stringify(p.pedido))).then(function(h){var u=URL.createObjectURL(new Blob([h],{type:'text/html'}));if(w)w.location=u;else location.href=u}).catch(function(e){if(w)w.close();state(e.message,'bad')})};
-      el.querySelector('[data-a="copy"]').onclick=function(){var t=p.pedido.proyecto+'\n'+LINKS.map(function(l){return l[1]+': '+(p.links[l[0]]||'—')}).join('\n');
-        (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){toast('Links copiados')},function(){state(t)})};
-      el.querySelector('[data-a="del"]').onclick=function(){if(el.dataset.confirm!=='1'){el.dataset.confirm='1';state('Toca Quitar otra vez para confirmar','bad');return}
-        P=P.filter(function(x){return x!==p});save();files.del(p.id+':modelo');files.del(p.id+':fachada');draw()};
-    });
+    drawAuth();drawList();
+    var M=$('main');
+    if(!cur){M.innerHTML='<div class="empty"><h2>Crea tu primer proyecto</h2><p>Empieza desde cero, importa la sala 14 (2D + render) o trae el proyecto de Antonio.</p><button class="b p" type="button" id="e-new">+ Nuevo proyecto</button></div>';$('e-new').onclick=nuevo;return}
+    M.innerHTML='<div class="phead"><div><span class="kicker">'+esc(cur.origen)+'</span><h2>'+esc(cur.datos.proyecto||'Proyecto sin nombre')+'</h2></div><div class="row"><span class="state" id="saved">'+(st.modo==='nube'?'Se guarda en la nube':'Se guarda en este navegador')+'</span><button class="b sm" id="del" type="button">Eliminar</button></div></div>'+
+      '<div class="tabs" role="tablist">'+TABS.map(function(t){return '<button type="button" role="tab" data-tab="'+t[0]+'" aria-selected="'+(t[0]===tab)+'">'+(t[0]!=='links'?'<span class="dot"></span>':'')+t[1]+'</button>'}).join('')+'</div><div class="panel" id="tp"></div>';
+    M.querySelectorAll('[data-tab]').forEach(function(b){b.onclick=function(){tab=b.dataset.tab;draw()}});
+    $('del').onclick=function(){var b=this;if(b.dataset.c!=='1'){b.dataset.c='1';b.textContent='Toca otra vez para eliminar';return}
+      var p=cur;S.remove(p.id).then(function(){S.files.del(p.id+':modelo');S.files.del(p.id+':fachada');P=P.filter(function(x){return x!==p});cur=P[0]||null;draw();toast('Proyecto eliminado')})};
+    drawDots();({proyecto:vProyecto,typeform:vTypeform,recorrido:vRecorrido,dashboard:vDashboard,links:vLinks})[tab]();
   }
-  $('exportAll').onclick=function(){dl(new Blob([JSON.stringify(P.map(function(p){return {proyecto:p.pedido.proyecto,origen:p.origen,links:p.links}}),null,2)],{type:'application/json'}),'links-salas-life-city.json')};
-  draw();
+  var OKS={proyecto:'Datos del proyecto completos.',typeform:'Listo: el Typeform califica al comprador y le recomienda estas tipologías.',recorrido:'Listo: cada tipología tiene su planta navegable, medición, asesor virtual y cita.',dashboard:'Listo: descarga el dashboard con el sitio, el Typeform y el recorrido.'};
+  function refreshNeed(){var n=document.querySelector('#tp > .need');if(n&&OKS[tab])n.outerHTML=need(tab,OKS[tab]);drawDots()}
+  function need(tabId,ok){var m=falta(cur,tabId);return '<div class="need'+(m.length?'':' ok')+'">'+(m.length?'Falta: '+esc(m.slice(0,6).join(', '))+(m.length>6?' y '+(m.length-6)+' más':''):esc(ok))+'</div>'}
+  function bind(root){root.querySelectorAll('[data-k]').forEach(function(el){el.oninput=el.onchange=function(){var v=el.type==='number'?(el.value===''?'':+el.value):el.value;cur.datos[el.dataset.k]=v;
+    if(el.dataset.k==='proyecto'){var h=document.querySelector('.phead h2');if(h)h.textContent=v||'Proyecto sin nombre'}if(el.dataset.k==='negocio')vProyecto();sucio()}})}
+  function inp(k,label,o){o=o||{};var v=cur.datos[k];return '<label class="f'+(o.full?' full':'')+'">'+label+'<input data-k="'+k+'" type="'+(o.type||'text')+'" value="'+esc(v)+'" placeholder="'+esc(o.ph||'')+'"'+(o.type==='number'?' step="any"':'')+'></label>'}
+
+  function vProyecto(){
+    var d=cur.datos;
+    $('tp').innerHTML=need('proyecto','Datos del proyecto completos.')+'<div class="grid">'+inp('proyecto','Nombre del proyecto',{ph:'Torre Palmas'})+inp('empresa','Constructora',{ph:'Constructora del Valle'})+inp('director','Director comercial o asesor',{ph:'Antonio Restrepo'})+
+      inp('whatsapp','WhatsApp de ventas',{type:'tel',ph:'573001234567'})+inp('correo','Correo',{type:'email',ph:'ventas@constructora.co'})+inp('ciudad','Ciudad y barrio',{ph:'Cali · Valle del Lili'})+
+      '<label class="f">Zona<select data-k="zona">'+['Norte','Sur','Oeste','Centro'].map(function(z){return '<option'+(d.zona===z?' selected':'')+'>'+z+'</option>'}).join('')+'</select></label>'+
+      '<label class="f">Cómo se comercializa<select data-k="negocio">'+Object.keys(NEG).map(function(k){return '<option value="'+k+'"'+(d.negocio===k?' selected':'')+'>'+NEG[k]+'</option>'}).join('')+'</select></label>'+inp('entrega','Entrega',{ph:'Dic. 2027'})+
+      inp('salaDir','Dirección de la sala de ventas',{ph:'Cra. 98 # 18-50',full:false})+inp('horarios','Horarios de la sala')+
+      (d.negocio==='colaborativa'?inp('ticket','Ticket mínimo (millones)',{type:'number'})+inp('rentab','Rentabilidad anual %',{type:'number'}):'')+'</div>';
+    bind($('tp'));
+  }
+
+  function tipRows(){return cur.tipologias.map(function(t,i){
+    return '<tr data-t="'+i+'"><td><b>'+esc(t.id)+'</b></td><td><input data-tk="nombre" value="'+esc(t.nombre)+'"></td><td><select data-tk="espacio">'+Object.keys(ESP).map(function(k){return '<option value="'+k+'"'+(t.espacio===k?' selected':'')+'>'+ESP[k].n+'</option>'}).join('')+'</select></td>'+
+      '<td><input type="number" step="any" data-tk="area" value="'+esc(t.area)+'"></td><td><input type="number" data-tk="hab" value="'+esc(t.hab)+'"></td><td><input type="number" data-tk="banos" value="'+esc(t.banos)+'"></td>'+
+      '<td><input type="number" step="any" data-tk="precio" value="'+esc(t.precio)+'"></td><td><input type="number" step="any" data-tk="renta" value="'+esc(t.renta)+'"></td>'+
+      '<td><select data-tk="para"><option value="ambos"'+(t.para==='ambos'?' selected':'')+'>Vivir e invertir</option><option value="vivienda"'+(t.para==='vivienda'?' selected':'')+'>Para vivir</option><option value="inversion"'+(t.para==='inversion'?' selected':'')+'>Para invertir</option></select></td>'+
+      '<td><button class="x" type="button" data-rm aria-label="Quitar tipología">×</button></td></tr>'}).join('')}
+  function bindTips(root,after){root.querySelectorAll('tr[data-t]').forEach(function(tr){var t=cur.tipologias[+tr.dataset.t];
+    tr.querySelectorAll('[data-tk]').forEach(function(el){el.oninput=el.onchange=function(){t[el.dataset.tk]=el.type==='number'?(el.value===''?'':+el.value):el.value;sucio();drawDots()}});
+    tr.querySelector('[data-rm]').onclick=function(){if(cur.unidades.some(function(u){return u.tipologia===t.id})&&tr.dataset.c!=='1'){tr.dataset.c='1';toast('Hay unidades de '+t.nombre+'. Toca × otra vez para quitarla con sus unidades');return}
+      cur.tipologias.splice(+tr.dataset.t,1);cur.unidades=cur.unidades.filter(function(u){return u.tipologia!==t.id});sucio();after()}})}
+  function vTypeform(){
+    $('tp').innerHTML=need('typeform','Listo: el Typeform califica al comprador y le recomienda estas tipologías.')+
+      '<p class="muted">El Typeform de Antonio pregunta para qué busca, presupuesto, habitaciones o tipo de renta y zona; recomienda las 3 tipologías con más afinidad, abre su recorrido y agenda la cita por WhatsApp. Necesita tus tipologías con precio (millones) y renta mensual estimada (millones).</p>'+
+      '<div class="tw"><table><thead><tr><th></th><th>Tipología</th><th>Espacio</th><th>Área m²</th><th>Hab.</th><th>Baños</th><th>Precio desde (M)</th><th>Renta mes (M)</th><th>Para</th><th></th></tr></thead><tbody>'+tipRows()+'</tbody></table></div>'+
+      '<div class="row"><button class="b" id="addT" type="button">+ Tipología</button>'+(cur.unidades.length?'<button class="b" id="fromU" type="button">Crear tipologías desde las unidades</button>':'')+'</div>'+
+      '<div class="row"><button class="b p" id="tfOpen" type="button">Ver el Typeform ↗</button><button class="b" id="tfDl" type="button">Descargar typeform.html</button><span class="state">El precio sale de la unidad disponible más barata de cada tipología; si no hay unidades, del precio de la tabla.</span></div>';
+    bindTips($('tp'),vTypeform);
+    $('addT').onclick=function(){nuevaTip(cur);sucio();vTypeform();drawDots()};
+    if($('fromU'))$('fromU').onclick=function(){cur.tipologias=[];tipsDesdeUnidades(cur,cur.unidades.map(function(u){return Object.assign({tipo:'apartamentos'},u)}));sucio();vTypeform();drawDots()};
+    $('tfOpen').onclick=function(){if(!cur.tipologias.length){toast('Agrega al menos una tipología');return}abrir(cur,'typeform')};
+    $('tfDl').onclick=function(){if(!cur.tipologias.length){toast('Agrega al menos una tipología');return}htmlAntonio(cur,'typeform').then(function(h){dl(new Blob([h],{type:'text/html'}),slug(cur)+'-typeform.html')})};
+  }
+  function planSVG(t){var L=pack(t.ambientes);if(!L.rooms.length)return '<p class="state" style="color:#333;padding:20px">Agrega ambientes para ver la planta</p>';
+    return '<svg viewBox="-20 -20 '+(L.w+40)+' '+(L.h+40)+'" role="img" aria-label="Planta de '+esc(t.nombre)+'">'+L.rooms.map(function(r){return '<rect x="'+r.x+'" y="'+r.y+'" width="'+r.w+'" height="'+r.h+'" fill="#fbf8f4" stroke="#3a332d" stroke-width="8"/>'+(r.w>=150&&r.h>=110?'<text x="'+(r.x+r.w/2)+'" y="'+(r.y+r.h/2)+'" text-anchor="middle" font-size="24" font-family="sans-serif" fill="#211c18">'+esc(r.n.length>16?r.n.split(' ')[0]:r.n)+'</text><text x="'+(r.x+r.w/2)+'" y="'+(r.y+r.h/2+28)+'" text-anchor="middle" font-size="19" font-family="monospace" fill="#6a625b">'+(r.w/100).toFixed(1)+' × '+(r.h/100).toFixed(1)+'</text>':'')}).join('')+'</svg>'}
+  function vRecorrido(){
+    var R=cur.recorrido=cur.recorrido||{};
+    $('tp').innerHTML=need('recorrido','Listo: cada tipología tiene su planta navegable, medición, asesor virtual y cita.')+
+      '<p class="muted">El recorrido virtual de Antonio: el comprador entra a la planta, toca cada ambiente, mide paredes, el asesor virtual le pregunta qué mueble necesita y si cabe, y agenda la cita con la ficha. Necesita los ambientes de cada tipología (ancho × largo en metros).</p>'+
+      cur.tipologias.map(function(t,i){var A=t.ambientes||[];return '<div class="tip" data-ti="'+i+'"><div class="amb"><div class="row" style="justify-content:space-between"><h3>'+esc(t.nombre)+'</h3><span class="state">'+esc(t.area)+' m² · '+esc(t.hab)+' hab · '+esc(t.banos)+' baños</span></div>'+
+        '<div class="r" style="font:600 11px var(--mono);color:var(--muted)"><span>AMBIENTE</span><span>ANCHO M</span><span>LARGO M</span><span></span></div>'+
+        A.map(function(a,j){return '<div class="r" data-ai="'+j+'"><input data-ak="n" value="'+esc(a.n)+'" aria-label="Ambiente"><input type="number" step="0.05" data-ak="w" value="'+esc(a.w)+'" aria-label="Ancho"><input type="number" step="0.05" data-ak="l" value="'+esc(a.l)+'" aria-label="Largo"><button class="x" type="button" data-arm aria-label="Quitar ambiente">×</button></div>'}).join('')+
+        '<div class="row"><button class="b sm" type="button" data-aadd>+ Ambiente</button><button class="b sm" type="button" data-asug>Usar ambientes sugeridos</button><button class="b sm" type="button" data-aview>Recorrer '+esc(t.id)+' ↗</button></div></div><div class="plan" data-plan>'+planSVG(t)+'</div></div>'}).join('')+
+      '<div class="box"><span class="kicker">Recorrido 3D (opcional)</span><p class="muted" style="font-size:13.5px">Sube el modelo en .glb u .obj y el sitio del instalador muestra el edificio en 3D con las unidades. Se guarda en este navegador.</p>'+
+      '<div class="row"><label class="b upl">'+(cur.archivos.modelo?'Cambiar modelo':'Subir modelo 3D')+'<input type="file" id="m3d" accept=".glb,.gltf,.obj"></label><span class="state">'+(cur.archivos.modelo?esc(cur.archivos.modelo):'Sin modelo')+'</span>'+(cur.archivos.modelo?'<button class="b sm" id="m3dx" type="button">Quitar</button>':'')+'</div></div>'+
+      '<div class="row"><label class="f" style="max-width:260px">Nombre de prueba del visitante<input id="vis" value="'+esc(R.visitante||'')+'" placeholder="Visitante"></label><button class="b p" id="rcOpen" type="button">Ver el recorrido ↗</button><button class="b" id="rcDl" type="button">Descargar recorrido.html</button></div>';
+    if(!cur.tipologias.length)$('tp').insertAdjacentHTML('beforeend','<p class="state">Primero crea las tipologías en la pestaña Typeform.</p>');
+    $('tp').querySelectorAll('.tip').forEach(function(box){var t=cur.tipologias[+box.dataset.ti];
+      function plan(){box.querySelector('[data-plan]').innerHTML=planSVG(t);drawDots()}
+      box.querySelectorAll('[data-ai]').forEach(function(r){var a=t.ambientes[+r.dataset.ai];
+        r.querySelectorAll('[data-ak]').forEach(function(el){el.oninput=function(){a[el.dataset.ak]=el.type==='number'?+el.value:el.value;plan();sucio()}});
+        r.querySelector('[data-arm]').onclick=function(){t.ambientes.splice(+r.dataset.ai,1);sucio();vRecorrido()}});
+      box.querySelector('[data-aadd]').onclick=function(){(t.ambientes=t.ambientes||[]).push({n:'Ambiente',w:3,l:3});sucio();vRecorrido()};
+      box.querySelector('[data-asug]').onclick=function(){t.ambientes=sugeridos(t.hab,t.area);sucio();vRecorrido()};
+      box.querySelector('[data-aview]').onclick=function(){var q=JSON.parse(JSON.stringify(cur));q.tipologias=[t].concat(cur.tipologias.filter(function(x){return x!==t}));abrir(q,'recorrido')};
+    });
+    $('vis').oninput=function(e){R.visitante=e.target.value;sucio()};
+    $('m3d').onchange=function(e){var f=e.target.files[0];e.target.value='';if(!f)return;if(f.size>150e6){toast('El modelo pesa más de 150 MB');return}S.files.put(cur.id+':modelo',f).then(function(){cur.archivos.modelo=f.name;sucio();vRecorrido();toast('Modelo guardado en este navegador')})};
+    if($('m3dx'))$('m3dx').onclick=function(){S.files.del(cur.id+':modelo');delete cur.archivos.modelo;sucio();vRecorrido()};
+    $('rcOpen').onclick=function(){if(!cur.tipologias.length){toast('Primero crea las tipologías');return}abrir(cur,'recorrido')};
+    $('rcDl').onclick=function(){if(!cur.tipologias.length){toast('Primero crea las tipologías');return}htmlAntonio(cur,'recorrido').then(function(h){dl(new Blob([h],{type:'text/html'}),slug(cur)+'-recorrido.html')})};
+  }
+  function vDashboard(){
+    var U=cur.unidades,tot=U.reduce(function(s,u){return s+(+u.precio||0)},0),disp=U.filter(function(u){return u.estado==='disponible'}).length,vend=U.filter(function(u){return u.estado==='vendido'}).length;
+    var opts=function(sel){return cur.tipologias.map(function(t){return '<option value="'+esc(t.id)+'"'+(t.id===sel?' selected':'')+'>'+esc(t.nombre)+'</option>'}).join('')};
+    $('tp').innerHTML=need('dashboard','Listo: descarga el dashboard con el sitio, el Typeform y el recorrido.')+
+      '<div class="box drop" id="dropDash"><span class="kicker">Importar la sala 14 · JSON</span><p class="muted" style="font-size:13.5px">Trae pisos, unidades, áreas, alcobas, baños, precios y estados desde el .sala.zip, proyecto.json o datos.js de la sala de renders. Reemplaza las tipologías y unidades de este proyecto.'+(cur.sala14?' Última importación: '+cur.sala14.pisos+' pisos y '+cur.sala14.plantas+' plantas.':'')+'</p><label class="b upl" style="width:fit-content">Importar JSON de la sala 14<input type="file" id="imp14" accept=".zip,.json,.js"></label></div>'+
+      '<div class="stats"><div><b>'+U.length+'</b><span>unidades</span></div><div><b>'+disp+'</b><span>disponibles</span></div><div><b>'+vend+'</b><span>vendidas</span></div><div><b>'+cop(tot)+'</b><span>inventario</span></div></div>'+
+      (cur.tipologias.length?'<div class="box"><span class="kicker">Crear unidades desde las tipologías</span><div class="row"><label class="f">Tipología<select id="gT">'+opts()+'</select></label><label class="f">Cantidad<input id="gN" type="number" value="8" style="width:90px"></label><label class="f">Por piso<input id="gP" type="number" value="4" style="width:90px"></label><label class="f">Desde el piso<input id="gF" type="number" value="2" style="width:90px"></label><button class="b" id="gGo" type="button">Agregar unidades</button></div></div>':'<p class="state">Crea tipologías en la pestaña Typeform o importa la sala 14.</p>')+
+      (U.length?'<div class="row"><label class="f">Ajustar precios de<select id="aT"><option value="">Todas</option>'+opts()+'</select></label><label class="f">%<input id="aP" type="number" value="3" style="width:80px"></label><button class="b" id="aGo" type="button">Aplicar</button></div>'+
+      '<div class="tw" style="max-height:420px;overflow:auto"><table><thead><tr><th>Unidad</th><th>Tipología</th><th>Piso</th><th>Área m²</th><th>Precio (M)</th><th>Estado</th><th></th></tr></thead><tbody>'+U.map(function(u,i){
+        return '<tr data-u="'+i+'"><td><input data-uk="id" value="'+esc(u.id)+'" style="width:90px"></td><td><select data-uk="tipologia">'+opts(u.tipologia)+'</select></td><td><input type="number" data-uk="piso" value="'+esc(u.piso)+'"></td><td><input type="number" step="any" data-uk="area" value="'+esc(u.area)+'"></td><td><input type="number" step="any" data-uk="precio" value="'+esc(u.precio)+'"></td><td><select data-uk="estado">'+['disponible','reservado','vendido'].map(function(s){return '<option'+(s===u.estado?' selected':'')+'>'+s+'</option>'}).join('')+'</select></td><td><button class="x" type="button" data-urm aria-label="Quitar unidad">×</button></td></tr>'}).join('')+'</tbody></table></div>':'')+
+      '<div class="row"><button class="b p" id="zip" type="button">Descargar dashboard (.zip)</button><span class="state" id="zst">Trae el dashboard (precios, estados, tutoriales y dominio), el sitio 3D, el Typeform y el recorrido virtual.</span></div>';
+    var dz=$('dropDash');dz.ondragover=function(e){e.preventDefault();dz.classList.add('over')};dz.ondragleave=function(){dz.classList.remove('over')};
+    dz.ondrop=function(e){e.preventDefault();dz.classList.remove('over');var f=e.dataTransfer.files[0];if(f)imp(f)};
+    $('imp14').onchange=function(e){var f=e.target.files[0];e.target.value='';if(f)imp(f)};
+    function imp(f){leerArchivo(f).then(function(r){if(r.S)fromRenders(r.S,cur);else{var q=fromPedido(r.D,cur.origen);cur.tipologias=q.tipologias;cur.unidades=q.unidades}cur.origen=r.S?'Sala 14 · renders':cur.origen;return guardarArchivos(cur,r)}).then(function(){sucio();draw();toast('Sala 14 importada: '+cur.unidades.length+' unidades')}).catch(function(e){toast(e.message)})}
+    if($('gGo'))$('gGo').onclick=function(){var t=tipo(cur,$('gT').value),n=+$('gN').value||0,per=Math.max(1,+$('gP').value||1),f0=+$('gF').value||1;if(!t||n<1)return;
+      var used={};cur.unidades.forEach(function(u){used[u.id]=1});var k=0,piso=f0,slot=1;
+      while(k<n){var id=String(piso*100+slot);if(!used[id]){cur.unidades.push({id:id,tipologia:t.id,piso:piso,area:+t.area||0,precio:Math.round((+t.precio||0)*(1+0.004*(piso-f0))),estado:'disponible'});used[id]=1;k++}slot++;if(slot>per){slot=1;piso++}}
+      sucio();vDashboard();drawDots()};
+    if($('aGo'))$('aGo').onclick=function(){var t=$('aT').value,pc=+$('aP').value||0;cur.unidades.forEach(function(u){if(!t||u.tipologia===t)u.precio=Math.round(u.precio*(1+pc/100)*10)/10});sucio();vDashboard()};
+    $('tp').querySelectorAll('tr[data-u]').forEach(function(tr){var u=cur.unidades[+tr.dataset.u];
+      tr.querySelectorAll('[data-uk]').forEach(function(el){el.onchange=function(){u[el.dataset.uk]=el.type==='number'?+el.value:el.value;sucio();if(el.dataset.uk==='precio'||el.dataset.uk==='estado')vDashboard()}});
+      tr.querySelector('[data-urm]').onclick=function(){cur.unidades.splice(+tr.dataset.u,1);sucio();vDashboard()}});
+    $('zip').onclick=function(){if(!cur.unidades.length){toast('Agrega unidades antes de descargar');return}var b=this;b.disabled=true;$('zst').textContent='Armando el dashboard…';
+      instalador(cur).then(function(o){dl(o.blob,o.filename);$('zst').textContent='✓ '+o.filename+' descargado';$('zst').className='state ok'}).catch(function(e){$('zst').textContent=e.message;$('zst').className='state bad'}).then(function(){b.disabled=false})};
+  }
+  function vLinks(){
+    $('tp').innerHTML='<p class="muted">Cuando publiques cada pieza, pega aquí su link. Así cada proyecto tiene en un solo lugar su Typeform, su recorrido, su sala de renders, su dashboard publicado y su propuesta.</p><div class="box">'+
+      LINKS.map(function(l){return '<div class="lk"><label for="L-'+l[0]+'">'+l[1]+'<small>'+l[2]+'</small></label><input id="L-'+l[0]+'" data-l="'+l[0]+'" type="url" placeholder="https://…" value="'+esc(cur.links[l[0]]||'')+'"><a class="b sm" data-open="'+l[0]+'" target="_blank" rel="noopener"'+(cur.links[l[0]]?' href="'+esc(cur.links[l[0]])+'"':'')+'>Abrir ↗</a></div>'}).join('')+'</div>'+
+      '<div class="row"><button class="b" id="cp" type="button">Copiar links</button><button class="b" id="ex" type="button">Exportar links de todos los proyectos (.json)</button></div>';
+    $('tp').querySelectorAll('[data-l]').forEach(function(i){i.onchange=function(){cur.links[i.dataset.l]=i.value.trim();var a=$('tp').querySelector('[data-open="'+i.dataset.l+'"]');if(i.value.trim())a.href=i.value.trim();else a.removeAttribute('href');sucio()}});
+    $('tp').querySelectorAll('[data-open]').forEach(function(a){a.onclick=function(e){if(!a.getAttribute('href')){e.preventDefault();toast('Pega primero el link')}}});
+    $('cp').onclick=function(){var t=(cur.datos.proyecto||'Proyecto')+'\n'+LINKS.map(function(l){return l[1]+': '+(cur.links[l[0]]||'—')}).join('\n');(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){toast('Links copiados')},function(){toast('No se pudo copiar')})};
+    $('ex').onclick=function(){dl(new Blob([JSON.stringify(P.map(function(p){return {proyecto:p.datos.proyecto,origen:p.origen,links:p.links}}),null,2)],{type:'application/json'}),'links-salas-life-city.json')};
+  }
+
+  /* ===================== fuentes ===================== */
+  function nuevo(){var p=blank();agregar(p,'Proyecto creado. Empieza por los datos del proyecto.')}
+  $('nuevo').onclick=nuevo;
+  $('fileNew').onchange=function(e){var f=e.target.files[0];e.target.value='';if(f)importarNuevo(f).catch(function(err){toast(err.message)})};
+  var dr=$('drop');dr.ondragover=function(e){e.preventDefault();dr.classList.add('over')};dr.ondragleave=function(){dr.classList.remove('over')};
+  dr.ondrop=function(e){e.preventDefault();dr.classList.remove('over');var f=e.dataTransfer.files[0];if(f)importarNuevo(f).catch(function(err){toast(err.message)})};
+  $('fromKit').onclick=function(){LCKit.load().then(function(r){if(!r.pedido){toast('No hay pedidos de la Sales App en este navegador');return}
+    var p=fromPedido(r.pedido,'Sales App 3D');guardarArchivos(p,{modelo:r.model?new File([r.model.blob],r.model.name):null}).then(function(){agregar(p,'Pedido de la Sales App agregado')})})};
+  $('fromAntonio').onclick=function(){
+    var p=blank();p.origen='Antonio';Object.assign(p.datos,{proyecto:'La Vista de San Eduardo',empresa:'Constructora de Antonio',director:'Antonio',whatsapp:'',ciudad:'Cali',zona:'Sur',negocio:'planos',entrega:'Dic. 2027',salaDir:''});
+    var t=nuevaTip(p,{nombre:'Tipo A · 121 m²',area:121,hab:3,banos:2,precio:585,renta:3.1,para:'ambos'});
+    p.unidades=[['U-201',585,'disponible',2],['U-215',598,'reservado',2],['U-501',612,'disponible',5],['U-815',640,'disponible',8],['U-1015',668,'disponible',10],['U-1101',695,'disponible',11]].map(function(x){return {id:x[0],tipologia:t.id,piso:x[3],area:121,precio:x[1],estado:x[2]}});
+    Object.assign(p.links,{typeform:BASE+'antonio/typeform.html',recorrido:'https://vista-san-eduardo.netlify.app/',propuesta:BASE+'antonio/propuesta.html'});
+    agregar(p,'San Eduardo agregado: completa el WhatsApp y la dirección de la sala');
+  };
+
+  S.init(function(e){st=e;cargar()});
 })();
 </script>
 </body>

@@ -257,7 +257,7 @@ const PROPS=[
 ];
 /* Datos del proyecto: si la página trae window.LC_TYPEFORM (lo inyecta el panel de Life City al crear
    el Typeform de un proyecto), reemplaza la configuración y las propiedades de ejemplo. */
-if(window.LC_TYPEFORM){Object.assign(CONFIG,LC_TYPEFORM.config||{});if(LC_TYPEFORM.props&&LC_TYPEFORM.props.length)PROPS.splice(0,PROPS.length,...LC_TYPEFORM.props);if(LC_TYPEFORM.titulo){document.title=LC_TYPEFORM.titulo;var _b=document.getElementById('lc-brand');if(_b)_b.textContent=LC_TYPEFORM.titulo;}}
+if(window.LC_TYPEFORM){Object.assign(CONFIG,LC_TYPEFORM.config||{});if(LC_TYPEFORM.layouts)Object.assign(LAYOUTS,LC_TYPEFORM.layouts);if(LC_TYPEFORM.props&&LC_TYPEFORM.props.length)PROPS.splice(0,PROPS.length,...LC_TYPEFORM.props);if(LC_TYPEFORM.titulo){document.title=LC_TYPEFORM.titulo;var _b=document.getElementById('lc-brand');if(_b)_b.textContent=LC_TYPEFORM.titulo;}}
 /* ====================================== */
 
 const $=s=>document.querySelector(s);
@@ -538,8 +538,14 @@ $('#confirm').onclick=()=>{
   toast('Cita agendada. '+CONFIG.director+' y su equipo ya tienen la ficha');
 };
 
-/* inicio */
-drawQ();stage(1);
+/* inicio: modo "recorrido" (lo usa el recorrido virtual que crea el estudio de Life City) entra directo a la planta */
+if(window.LC_TYPEFORM&&LC_TYPEFORM.inicio==='recorrido'&&PROPS.length){
+  A.nombre=LC_TYPEFORM.visitante||'Visitante';A.wa='';A.fin='vivienda';A.pres='999';A.zona='any';
+  const p0=PROPS.find(p=>p.id===LC_TYPEFORM.prop)||PROPS[0];startTour(p0);
+  if(PROPS.length>1){const sel=document.createElement('select');sel.setAttribute('aria-label','Tipología');sel.style.cssText='border:1px solid var(--line);border-radius:10px;padding:8px;font:600 14px var(--body);background:var(--surface);color:var(--fg)';
+    sel.innerHTML=PROPS.map(p=>'<option value="'+esc(p.id)+'"'+(p===p0?' selected':'')+'>'+esc(p.n)+'</option>').join('');
+    sel.onchange=()=>startTour(PROPS.find(p=>p.id===sel.value));$('#t-eyebrow').after(sel);}
+}else{drawQ();stage(1);}
 </script>
 
 </body></html>
