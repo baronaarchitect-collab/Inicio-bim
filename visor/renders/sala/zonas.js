@@ -30,7 +30,8 @@
     if (!document.getElementById('zn-css')) { var st = document.createElement('style'); st.id = 'zn-css'; st.textContent = CSS; document.head.appendChild(st); }
     var img = o.img || function (p) { return p; }, esc = SR.esc;
     S.pisos = S.pisos || []; S.plantas = S.plantas || []; S.fachada = S.fachada || {};
-    var tab = 'fachada', ed = null, sel = null, band = { on: true, n: 10, nivel: 2 };
+    // herramientas de la fachada: contorno → pisos (silueta recortada por losas), rectángulo → pisos, polígono libre (un piso)
+    var tab = 'fachada', ed = null, sel = null, band = { n: 10, nivel: 2 }, tool = 'contorno', guide = null;
     el.innerHTML = '<div class="zn"><div class="zn-tabs"></div><div class="zn-main"></div><div class="zn-side"></div></div>';
     var tabsEl = el.querySelector('.zn-tabs'), main = el.querySelector('.zn-main'), side = el.querySelector('.zn-side');
 
@@ -82,7 +83,11 @@
         src: img(S.fachada.img), shapes: S.pisos,
         label: function (p) { return p.nombre || ('Piso ' + p.nivel); },
         create: function (poly) {
-          if (band.on) {
+          if (tool === 'contorno') {
+            guide = { mask: poly, lines: SR.floorLines(poly, band.n), onChange: sideFachada };
+            ed.guide(guide); sideFachada(); return null;
+          }
+          if (tool === 'rect') {
             var bands = SR.splitBands(poly, band.n), top = band.nivel + band.n - 1;
             var made = bands.map(function (b, i) { var lv = top - i; return { id: 'p' + lv + '-' + Date.now().toString(36) + i, nivel: lv, nombre: 'Piso ' + lv, poly: b, planta: (S.plantas[0] || {}).id || '' }; });
             band.nivel = top + 1; return made;
@@ -96,10 +101,17 @@
       sideFachada();
     }
     function sideFachada() {
-      var html = '<div class="zn-box"><h4>Cómo marcar los pisos</h4><p class="help"><b>Arrastra</b> un rectángulo sobre el edificio o haz <b>clics</b> para un polígono (ciérralo en el primer punto). Clic en una zona para editarla; arrastra sus puntos para ajustarla.</p>' +
-        '<label style="display:flex;gap:8px;align-items:center;color:#f1ede4"><input type="checkbox" data-k="on" style="width:auto"' + (band.on ? ' checked' : '') + '> Dividir el rectángulo en varios pisos</label>' +
-        '<div class="row"><label>Nº de pisos<input type="number" min="1" data-k="n" value="' + band.n + '"></label><label>Desde el nivel<input type="number" data-k="nivel" value="' + band.nivel + '"></label></div>' +
-        '<p class="help">Con esto, un solo rectángulo desde la cubierta hasta el primer piso de vivienda crea todos los pisos de una vez.</p></div>';
+      if (guide) return sideGuide();
+      var TOOLS = { contorno: 'Contorno → pisos', rect: 'Rectángulo → pisos', libre: 'Un piso a mano' };
+      var HELP = {
+        contorno: 'Haz <b>clics</b> alrededor de la silueta del edificio (retrocesos, jardineras, cara lateral) y ciérrala en el primer punto. Luego ajustas las líneas de losa y cada piso queda recortado con la forma exacta.',
+        rect: '<b>Arrastra</b> un rectángulo de la cubierta al primer piso de vivienda: se divide en franjas iguales. Útil en fachadas planas y frontales.',
+        libre: 'Dibuja la máscara de un solo piso con <b>clics</b> (ciérrala en el primer punto). Para niveles con forma muy irregular.'
+      };
+      var html = '<div class="zn-box"><h4>Herramienta</h4><div class="chips">' + Object.keys(TOOLS).map(function (k) { return '<label><input type="radio" name="zn-tool" data-tool="' + k + '"' + (k === tool ? ' checked' : '') + '>' + TOOLS[k] + '</label>'; }).join('') + '</div>' +
+        '<p class="help">' + HELP[tool] + '</p>' +
+        (tool !== 'libre' ? '<div class="row"><label>Nº de pisos<input type="number" min="1" data-k="n" value="' + band.n + '"></label><label>Desde el nivel<input type="number" data-k="nivel" value="' + band.nivel + '"></label></div>' : '') +
+        '<p class="help">Para afinar una máscara: selecciona el piso, arrastra sus puntos, arrastra un <b style="color:#3fb67a">+</b> para agregar un punto y haz doble clic en un punto para quitarlo.</p></div>';
       html += '<div class="zn-box"><h4>' + S.pisos.length + ' pisos marcados</h4>' + (S.plantas.length ? '' : '<p class="help">Luego crea una planta con <b>+ Nueva planta</b> y asígnala a los pisos.</p>');
       if (sel) {
         html += '<div class="row"><label>Nombre<input data-f="nombre" value="' + esc(sel.nombre) + '"></label><label>Nivel<input type="number" data-f="nivel" value="' + esc(sel.nivel) + '"></label></div>' +
@@ -108,13 +120,42 @@
       } else html += '<p class="help">Selecciona un piso para editar su nombre, nivel y planta.</p>';
       html += '<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="b" data-act="img">Cambiar render</button>' + (S.pisos.length ? '<button class="b red" data-act="clear">Borrar todos</button>' : '') + '</div></div>';
       side.innerHTML = html;
-      side.querySelectorAll('[data-k]').forEach(function (i) { i.onchange = function () { band[i.dataset.k] = i.type === 'checkbox' ? i.checked : +i.value; }; });
+      side.querySelectorAll('[data-k]').forEach(function (i) { i.onchange = function () { band[i.dataset.k] = +i.value; }; });
+      side.querySelectorAll('[data-tool]').forEach(function (i) { i.onchange = function () { tool = i.dataset.tool; sideFachada(); }; });
       side.querySelectorAll('[data-f]').forEach(function (i) {
         i.onchange = function () { sel[i.dataset.f] = i.type === 'number' ? +i.value : i.value; if (i.dataset.f === 'nivel' && /^Piso \d+$/.test(sel.nombre)) sel.nombre = 'Piso ' + i.value; changed(); ed.redraw(); sideFachada(); };
       });
       act('del', function () { ed.remove(sel); });
       act('clear', function () { if (confirm('¿Borrar todos los pisos marcados?')) { S.pisos = []; sel = null; changed(); render(); } });
       act('img', function () { pick('image/*', function (f) { up(f, 'fachada').then(function (p) { S.fachada.img = p; changed(); ed.src(img(p)); }).catch(alert); }); });
+    }
+
+    /* contorno dibujado: se ajustan las líneas de losa y se crean los pisos recortados */
+    function sideGuide() {
+      var n = guide.lines.length - 1;
+      side.innerHTML = '<div class="zn-box"><h4>Líneas de losa</h4>' +
+        '<p class="help">Arrastra los puntos dorados para que cada línea siga el borde de la losa en el render (puedes inclinarlas por la perspectiva). Las franjas verdes y doradas son los pisos que se van a crear.</p>' +
+        '<div class="row"><label>Nº de pisos<input type="number" min="1" max="80" data-g="n" value="' + n + '"></label><label>Desde el nivel<input type="number" data-g="nivel" value="' + band.nivel + '"></label></div>' +
+        '<p class="help">El piso de abajo será el nivel ' + band.nivel + ' y el de arriba el ' + (band.nivel + n - 1) + '. Si el primer piso es más alto (lobby), baja solo esa línea.</p>' +
+        '<button class="b" data-act="even">Repartir parejo entre la primera y la última</button>' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="b gold" data-act="make">Crear ' + n + ' pisos</button><button class="b" data-act="cancel">Cancelar</button></div></div>';
+      side.querySelector('[data-g=n]').onchange = function (e) {
+        var k = Math.max(1, Math.min(80, +e.target.value || 1)); band.n = k;
+        guide.lines = SR.evenLines(guide.lines[0], guide.lines[guide.lines.length - 1], k); ed.guide(guide); sideGuide();
+      };
+      side.querySelector('[data-g=nivel]').onchange = function (e) { band.nivel = +e.target.value || 1; sideGuide(); };
+      act('even', function () { guide.lines = SR.evenLines(guide.lines[0], guide.lines[guide.lines.length - 1], guide.lines.length - 1); ed.guide(guide); });
+      act('cancel', function () { guide = null; ed.guide(null); sideFachada(); });
+      act('make', function () {
+        var L = guide.lines, top = band.nivel + L.length - 2, stamp = Date.now().toString(36), made = [];
+        for (var i = 0; i < L.length - 1; i++) {
+          var poly = SR.clipFloors(guide.mask, [L[i], L[i + 1]])[0], lv = top - i;
+          if (poly) made.push({ id: 'p' + lv + '-' + stamp + i, nivel: lv, nombre: 'Piso ' + lv, poly: poly, planta: (S.plantas[0] || {}).id || '' });
+        }
+        guide = null; ed.guide(null);
+        S.pisos = S.pisos.concat(made); band.nivel = top + 1;
+        ed.set(S.pisos); changed(); sideFachada();
+      });
     }
 
     /* ---------- planta ---------- */

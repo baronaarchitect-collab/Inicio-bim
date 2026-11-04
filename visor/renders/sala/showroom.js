@@ -24,7 +24,7 @@
 
   /* ---------- utilidades ---------- */
   function h(tag, attrs, kids) {
-    var svg = /^(svg|polygon|text|g)$/.test(tag);
+    var svg = /^(svg|polygon|path|text|g)$/.test(tag);
     var el = svg ? document.createElementNS('http://www.w3.org/2000/svg', tag) : document.createElement(tag);
     for (var k in attrs || {}) {
       if (k === 'on') for (var ev in attrs.on) el.addEventListener(ev, attrs.on[ev]);
@@ -259,16 +259,20 @@
 
     function drawFacade() {
       sF.svg.innerHTML = ''; floorList.innerHTML = '';
+      // máscara: al resaltar un piso se oscurece todo lo demás (sirve para pisos con forma irregular)
+      var dim = h('path', { class: 'sr-dim', 'fill-rule': 'evenodd', d: 'M0 0H1V1H0Z' });
+      sF.svg.appendChild(dim);
+      function spot(p) { if (p) dim.setAttribute('d', 'M0 0H1V1H0Z M' + p.poly.map(function (q) { return q[0] + ' ' + q[1]; }).join(' L') + 'Z'); dim.classList.toggle('on', !!p); }
       pisosOrden.forEach(function (p) {
         var n = libres(p), tot = unitsOf(S, p.id).length;
         var label = p.nombre || ('Piso ' + p.nivel);
         var info = '<b>' + esc(label) + '</b><span>' + (tot ? n + ' de ' + tot + ' disponibles' : 'Sin unidades') + '</span>';
         var poly = h('polygon', { class: 'sr-zone' + (n ? '' : ' none'), points: pts(p.poly), 'data-id': p.id });
         var btn = h('button', { 'data-id': p.id, html: '<span>' + esc(label) + '</span><em class="' + (n ? '' : 'z') + '">' + n + ' disp.</em>' });
-        function on(e) { poly.classList.add('hl'); btn.classList.add('hl'); if (e && e.clientX) showTip(e, info); }
-        function off() { poly.classList.remove('hl'); btn.classList.remove('hl'); hideTip(); }
+        function on(e) { poly.classList.add('hl'); btn.classList.add('hl'); spot(p); if (e && e.clientX) showTip(e, info); }
+        function off() { poly.classList.remove('hl'); btn.classList.remove('hl'); spot(null); hideTip(); }
         poly.addEventListener('mousemove', on); poly.addEventListener('mouseleave', off);
-        btn.addEventListener('mouseenter', function () { poly.classList.add('hl'); btn.classList.add('hl'); });
+        btn.addEventListener('mouseenter', function () { on(); });
         btn.addEventListener('mouseleave', off);
         poly.addEventListener('click', function () { hideTip(); showFloor(p); });
         btn.addEventListener('click', function () { showFloor(p); });

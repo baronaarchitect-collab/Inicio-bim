@@ -27,7 +27,9 @@
 .sr-plan .sr-frame { background: #f4f1ea; }
 
 .sr-zone { fill: rgba(200,169,106,0); stroke: rgba(255,255,255,0); stroke-width: 1.5; vector-effect: non-scaling-stroke; cursor: pointer; transition: fill .2s, stroke .2s; }
-.sr-zone:hover, .sr-zone.hl { fill: rgba(200,169,106,.38); stroke: #fff; }
+.sr-zone:hover, .sr-zone.hl { fill: rgba(200,169,106,.22); stroke: #fff; stroke-width: 2; }
+.sr-dim { fill: rgba(8,8,6,.58); opacity: 0; transition: opacity .25s; pointer-events: none; }
+.sr-dim.on { opacity: 1; }
 .sr-zone.none { cursor: not-allowed; }
 .sr-zone.none:hover, .sr-zone.none.hl { fill: rgba(139,134,125,.45); }
 .sr-apt { stroke-width: 2; vector-effect: non-scaling-stroke; cursor: pointer; transition: fill .2s, stroke .2s; }
