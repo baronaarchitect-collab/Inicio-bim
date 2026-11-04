@@ -15,7 +15,9 @@
  *   pisos:[{id, nivel, nombre, poly:[[x,y]…], planta}],      // poly normalizado 0..1 sobre la fachada
  *   plantas:[{id, nombre, img, aptos:[{n, poly, area, alcobas, banos, precio, render}]}],
  *   incremento, unidades:[{id, piso, apto, area, alcobas, banos, precio, estado}],
- *   recorrido:{url, paleta:[{nombre,hex}], decisiones:[{cat,titulo,texto}]}}
+ *   recorrido:{url, paleta:[{nombre,hex}], decisiones:[{cat,titulo,texto}]},
+ *   cta:{tipo:'pagar'|'sala', texto, url},                  // llamado a la acción de la ficha
+ *   correoConstructora, firebase:{…, masters}}               // inventario en la nube (nube.js)
  */
 (function () {
   'use strict';
@@ -84,7 +86,7 @@
     clear: function (S) { try { localStorage.removeItem(overlay.key(S)); } catch (e) {} },
     apply: function (S) {
       var o = overlay.get(S); if (!o) return S;
-      ['proyecto', 'empresa', 'ciudad', 'whatsapp', 'moneda', 'separacion', 'incremento', 'wompi', 'pisos', 'plantas', 'unidades', 'crm', 'netlify']
+      ['proyecto', 'empresa', 'ciudad', 'whatsapp', 'moneda', 'separacion', 'incremento', 'wompi', 'pisos', 'plantas', 'unidades', 'crm', 'netlify', 'recorrido', 'cta', 'correoConstructora', 'firebase']
         .forEach(function (k) { if (o[k] != null) S[k] = o[k]; });
       return S;
     },
@@ -226,7 +228,8 @@
     /* vista fachada */
     var sF = stage(vF, img(S.fachada.img));
     var topF = h('div', { class: 'sr-top' }, [h('div', { class: 'sr-brand', html: esc(S.proyecto) + '<small>' + esc(S.ciudad || 'Sala de ventas') + '</small>' }), h('div', { class: 'sr-sp' })]);
-    if (S.recorrido && (S.recorrido.url || opts.recorridoUrl)) topF.appendChild(h('button', { class: 'sr-btn', on: { click: function () { window.open(opts.recorridoUrl || S.recorrido.url, '_blank'); } } }, ['Recorrido 3D ↗']));
+    var tour = opts.recorridoUrl || (S.recorrido && S.recorrido.url);
+    if (tour) topF.appendChild(h('a', { class: 'sr-btn gold sr-tour', href: tour, target: '_blank', rel: 'noopener' }, ['Ver recorrido en 3D ↗']));
     vF.appendChild(topF);
     var floorList = h('div', { class: 'sr-floors' });
     vF.appendChild(floorList);
@@ -325,7 +328,7 @@
     function openSheet(u, a, p, poly) {
       sP.svg.querySelectorAll('.sel').forEach(function (x) { x.classList.remove('sel'); });
       poly && poly.classList.add('sel');
-      var sep = sepValue(S, u), rec = S.recorrido || {};
+      var sep = sepValue(S, u), rec = S.recorrido || {}, cta = S.cta || {}, pagar = cta.tipo !== 'sala';
       var html = '<button class="x" aria-label="Cerrar">✕</button>' +
         (a.render ? '<img class="hero" src="' + esc(img(a.render)) + '" alt="">' : '') +
         '<div class="in"><span class="sr-state ' + u.estado + '">' + ESTADOS[u.estado] + '</span>' +
@@ -333,11 +336,17 @@
         '<h3>Apartamento ' + esc(u.id) + '</h3>' +
         '<div class="sr-facts"><div><b>' + (u.area || '–') + '</b><span>m² construidos</span></div><div><b>' + (u.alcobas || '–') + '</b><span>alcobas</span></div><div><b>' + (u.banos || '–') + '</b><span>baños</span></div></div>' +
         '<div class="sr-price"><span>Valor</span><b>' + money(u.precio, cur) + '</b></div>' +
-        '<div class="sr-price sep"><span>Separación (' + (S.separacion || 10) + ' %)</span><b>' + money(sep, cur) + '</b></div>';
+        (pagar ? '<div class="sr-price sep"><span>Separación (' + (S.separacion || 10) + ' %)</span><b>' + money(sep, cur) + '</b></div>' : '');
       if ((rec.paleta || []).length) html += '<div class="sr-sec"><div class="sr-k">Paleta de acabados</div><div class="sr-pal">' + rec.paleta.map(function (c) { return '<i title="' + esc(c.nombre) + '" style="background:' + esc(c.hex) + '"></i>'; }).join('') + '</div></div>';
       if ((rec.decisiones || []).length) html += '<div class="sr-sec"><div class="sr-k">Decisiones arquitectónicas</div><ul class="sr-dec">' + rec.decisiones.slice(0, 4).map(function (d) { return '<li><b>' + esc(d.titulo) + '</b>' + esc(d.texto) + '</li>'; }).join('') + '</ul></div>';
       if (rec.url || opts.recorridoUrl) html += '<button class="sr-btn sr-full" data-act="tour" style="margin:6px 0 4px">Recorrer el apartamento en 3D ↗</button>';
-      if (u.estado === 'disponible') {
+      if (u.estado === 'disponible' && !pagar) {
+        // llamado a la acción: ir a la sala de ventas (link del dashboard o, si no hay, agendar por WhatsApp)
+        var msgSala = 'Hola, me interesa el apartamento ' + u.id + ' de ' + S.proyecto + '. Quiero visitar la sala de ventas.';
+        var go = cta.url ? cta.url.replace(/\{apto\}/g, encodeURIComponent(u.id)) : (S.whatsapp ? 'https://wa.me/' + S.whatsapp + '?text=' + encodeURIComponent(msgSala) : '');
+        html += go ? '<a class="sr-btn gold sr-full" data-act="cta" target="_blank" rel="noopener" href="' + esc(go) + '" style="margin-top:12px;text-align:center">' + esc(cta.texto || 'Ir a la sala de ventas') + '</a>' +
+          '<p class="sr-note">' + (cta.url ? 'Te atendemos en la sala de ventas del proyecto.' : 'Agenda tu visita con el asesor por WhatsApp.') + '</p>' : '<p class="sr-note">Escríbele al asesor para visitar la sala de ventas.</p>';
+      } else if (u.estado === 'disponible') {
         html += '<form autocomplete="on"><div class="sr-k" style="margin-top:12px">Separa este apartamento</div>' +
           '<label>Nombre completo<input name="nombre" required autocomplete="name"></label>' +
           '<label>Correo<input name="correo" type="email" required autocomplete="email"></label>' +

@@ -16,7 +16,7 @@
 (function () {
   'use strict';
   var IDX = 'lc:renders:proyectos', CUR = 'lc:renders:actual', PRE = 'lc:renders:p:', OLD = 'lc:renders:borrador', BASE = 'sala/';
-  var TEMPLATES = ['index.html', 'gracias.html', 'dashboard.html', 'showroom.js', 'showroom.css', 'editor.js', 'zonas.js', 'netlify.js'];
+  var TEMPLATES = ['index.html', 'gracias.html', 'dashboard.html', 'showroom.js', 'showroom.css', 'editor.js', 'zonas.js', 'netlify.js', 'nube.js'];
   var urls = {}, cur = null;
 
   function ext(f) { var m = /\.([a-z0-9]+)$/i.exec(f.name || ''); return (m ? m[1] : (f.type || '').split('/')[1] || 'jpg').toLowerCase().replace('jpeg', 'jpg').replace('svg+xml', 'svg'); }
@@ -194,6 +194,9 @@
     var root = o.flat ? null : zip.folder(name), site = o.flat ? zip : root.folder('sitio');
     var D = JSON.parse(JSON.stringify(S));
     delete D.demo;
+    // Firebase del master (config.js) para el inventario en la nube, si la sala no trae uno propio
+    var fb = (window.LC_CONFIG || {}).firebase;
+    if (!D.firebase && fb && fb.apiKey && !/^TU_/.test(fb.apiKey)) D.firebase = { apiKey: fb.apiKey, authDomain: fb.authDomain, projectId: fb.projectId, appId: fb.appId };
     D.unidades = SR.syncUnits(D).unidades;
     var jobs = TEMPLATES.map(function (f) {
       return fetch(BASE + f).then(function (r) { if (!r.ok) throw new Error('Falta ' + f); return r.text(); }).then(function (t) { site.file(f, t); });

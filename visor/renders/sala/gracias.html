@@ -26,6 +26,7 @@
 <div class="wrap"><div class="card" id="c"><div class="spin"></div><p class="sr-k">Verificando tu pago</p><h1>Un momento…</h1><p class="muted" id="st">Consultando la transacción en Wompi.</p></div></div>
 <script src="datos.js"></script>
 <script src="showroom.js"></script>
+<script src="nube.js"></script>
 <script>
 (function () {
   var S = SR.overlay.apply(window.SALA || {});
@@ -46,6 +47,9 @@
     if (approved) {
       SR.overlay.mark(S, uid, 'reservado');
       try { localStorage.removeItem(key); } catch (e) {}
+      // la separación llega al dashboard de la constructora para confirmarla (queda reservada en la sala)
+      if (SRNube.on(S) && !S.demo) SRNube.separacion(S, { unidad: uid, transaccion: t.id, referencia: t.reference, monto: t.amount_in_cents / 100, moneda: t.currency || cur, nombre: cli.nombre, correo: cli.correo, celular: cli.celular })
+        .catch(function (e) { console.warn('Nube:', e.message); });
       if (S.crm && !S.demo) import('https://proyectos-lifecity.github.io/crm/lead.js').then(function (m) {
         return m.guardarLead({ nombre: cli.nombre, celular: cli.celular, correo: cli.correo, monto: t.amount_in_cents / 100, proyecto: S.proyecto, mensaje: 'Separación apto ' + uid + ' · ' + t.id, origen: 'Separación sala de renders' });
       }).catch(function (e) { console.warn('CRM:', e); });

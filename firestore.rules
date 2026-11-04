@@ -48,5 +48,47 @@ service cloud.firestore {
     match /subscriptions/{id} {
       allow read, write: if false;
     }
+
+    // ---- Salas de renders: inventario en la nube (dashboard → Accesos de cada sala, ver visor/renders/README.md) ----
+    function correo() { return request.auth.token.email.lower(); }
+    function verificado() { return request.auth != null && request.auth.token.email_verified == true; }
+    // ⚠ Correos master (acceso total a todas las salas). No van en las salas publicadas.
+    function esMaster() { return verificado() && correo() in ['baronajuandavid@gmail.com']; }
+    function esVentas(sala) { return verificado() && exists(/databases/$(database)/documents/salasRenders/$(sala)/accesos/$(correo())); }
+    function texto(v, n) { return v is string && v.size() <= n; }
+
+    match /salasRenders/{sala} {
+      // la sala pública lee los estados en vivo
+      allow read: if true;
+      allow create, delete: if esMaster();
+      // ventas solo cambia estados, y firma con su correo
+      allow update: if esMaster() || (esVentas(sala)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estados', 'actualizado', 'por'])
+        && request.resource.data.estados.size() <= 3000
+        && request.resource.data.por == correo());
+
+      // accesos: solo el master los da o los quita; cada quien puede ver el suyo
+      match /accesos/{email} {
+        allow read: if esMaster() || (verificado() && correo() == email);
+        allow write: if esMaster();
+      }
+
+      // separaciones pagadas: las deja la página de gracias (comprador sin sesión); ventas las revisa
+      match /separaciones/{tx} {
+        allow create: if exists(/databases/$(database)/documents/salasRenders/$(sala))
+          && request.resource.data.keys().hasOnly(['unidad', 'transaccion', 'referencia', 'monto', 'moneda', 'nombre', 'correo', 'celular', 'estado', 'creado'])
+          && request.resource.data.estado == 'nueva'
+          && request.resource.data.creado == request.time
+          && request.resource.data.transaccion == tx
+          && texto(request.resource.data.unidad, 20) && texto(request.resource.data.referencia, 120)
+          && texto(request.resource.data.nombre, 120) && texto(request.resource.data.correo, 120) && texto(request.resource.data.celular, 40)
+          && request.resource.data.monto is number;
+        allow read: if esMaster() || esVentas(sala);
+        allow update: if (esMaster() || esVentas(sala))
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'por', 'revisado'])
+          && request.resource.data.estado in ['confirmada', 'descartada'];
+        allow delete: if esMaster();
+      }
+    }
   }
 }

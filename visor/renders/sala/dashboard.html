@@ -38,6 +38,13 @@
   .pill { font-size: 12px; padding: 2px 9px; border-radius: 999px; }
   #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #c8a96a; color: #17140d; padding: 10px 18px; border-radius: 999px; font-weight: 600; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 20; }
   #toast.on { opacity: 1; }
+  .chip { font-size: 12px; padding: 4px 11px; border-radius: 999px; border: 1px solid var(--line); color: #b9b3a6; cursor: pointer; background: none; font-family: inherit; }
+  .chip.on { border-color: #3fb67a; color: #9be0bb; }
+  .row { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .row b { font-weight: 600; } .row .sp { flex: 1; }
+  .opt { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; cursor: pointer; color: #f1ede4; font-size: 13.5px; }
+  .opt input { margin-top: 3px; } .opt.on { border-color: #c8a96a; background: rgba(200,169,106,.06); }
+  .opt span { display: block; color: #b9b3a6; font-size: 12px; }
   code { background: #0d0e0c; padding: 2px 6px; border-radius: 5px; font-size: 12px; word-break: break-all; }
 </style>
 </head>
@@ -46,9 +53,10 @@
   <h1 id="ttl">Dashboard<small>Sala de ventas con renders</small></h1>
   <nav id="nav">
     <button data-s="resumen" class="on">Resumen</button><button data-s="inventario">Inventario</button><button data-s="pagos">Pagos Wompi</button>
-    <button data-s="zonas">Render y plantas</button><button data-s="proyecto">Proyecto</button><button data-s="publicar">Publicar</button>
+    <button data-s="zonas">Render y plantas</button><button data-s="proyecto">Proyecto</button><button data-s="accesos">Accesos</button><button data-s="publicar">Publicar</button>
   </nav>
   <span style="flex:1"></span>
+  <button class="chip" id="nube-chip" hidden></button>
   <a class="sr-btn" href="index.html" target="_blank" style="text-decoration:none">Ver sala ↗</a>
   <button class="sr-btn gold" id="save">Guardar</button>
 </header>
@@ -56,6 +64,8 @@
   <section id="s-resumen" class="on"></section>
 
   <section id="s-inventario">
+    <div id="nube-inv"></div>
+    <div id="seps"></div>
     <div class="bar">
       <select id="f-piso"><option value="">Todos los pisos</option></select>
       <select id="f-est"><option value="">Todos los estados</option><option>disponible</option><option>reservado</option><option>vendido</option></select>
@@ -63,7 +73,7 @@
       <button class="sr-btn" id="recalc">Recalcular precios desde la base</button>
     </div>
     <div style="overflow:auto"><table id="tbl"></table></div>
-    <p class="help">Al editar un precio a mano, esa unidad deja de recalcularse con el incremento por piso. Los estados se ponen en <b>reservado</b> solos cuando Wompi aprueba una separación en este navegador; las ventas en sala márcalas aquí.</p>
+    <p class="help">Al editar un precio a mano, esa unidad deja de recalcularse con el incremento por piso. Con el inventario en la nube (pestaña <b>Accesos</b>) cada cambio de estado llega en vivo a la sala publicada; las separaciones pagadas en Wompi aparecen arriba para confirmarlas.</p>
   </section>
 
   <section id="s-pagos">
@@ -104,8 +114,29 @@
         <label>Moneda<select id="p-m"><option>COP</option><option>USD</option></select></label>
         <label>Incremento de precio por piso (%)<input id="p-inc" type="number" step="0.1"></label>
         <p class="help">Se aplica sobre el precio base de cada apartamento desde el piso más bajo.</p>
+        <label style="margin-top:6px">Correo de la constructora (acceso al dashboard)<input id="p-co" type="email" placeholder="ventas@constructora.com"></label>
+        <p class="help">El master le da acceso desde la pestaña <b>Accesos</b>.</p>
+      </div>
+      <div class="card">
+        <span class="k">Render frontal</span><h3>Recorrido en 3D</h3>
+        <label>Link del recorrido 3D<input id="p-rec" type="url" placeholder="https://… (Matterport, sala 3D de LCKit, Kuula…)"></label>
+        <p class="help">Si hay link, la fachada muestra el botón <b>Ver recorrido en 3D</b> y la ficha de cada apto lo ofrece también. Vacío = sin botón.</p>
+      </div>
+      <div class="card">
+        <span class="k">Ficha del apartamento</span><h3>Llamado a la acción</h3>
+        <label class="opt" data-cta="pagar"><input type="radio" name="cta" value="pagar"><div>Pagar la separación<span>El comprador separa el apto con el % de separación en Wompi.</span></div></label>
+        <label class="opt" data-cta="sala"><input type="radio" name="cta" value="sala"><div>Ir a la sala de ventas<span>Botón hacia tu sala de ventas (o a agendar la visita por WhatsApp si no pones link).</span></div></label>
+        <div id="cta-sala">
+          <label>Texto del botón<input id="cta-t" placeholder="Ir a la sala de ventas"></label>
+          <label>Link de la sala de ventas<input id="cta-u" type="url" placeholder="https://… · vacío = WhatsApp del asesor"></label>
+          <p class="help">Puedes usar <code>{apto}</code> en el link para mandar el número del apartamento.</p>
+        </div>
       </div>
     </div>
+  </section>
+
+  <section id="s-accesos"><div class="grid" id="acc"></div>
+    <p class="help" style="margin-top:14px">Igual que en el visor BIM: el master (correos fijos en <code>firestore.rules</code>) activa la sala y da acceso por correo a la constructora. Con acceso, el correo entra aquí y marca reservas y ventas; la sala pública las ve al instante.</p>
   </section>
 
   <section id="s-publicar">
@@ -133,6 +164,7 @@
 <script src="editor.js"></script>
 <script src="zonas.js"></script>
 <script src="netlify.js"></script>
+<script src="nube.js"></script>
 <script>
 (function () {
   var $ = function (id) { return document.getElementById(id); }, esc = SR.esc;
@@ -144,7 +176,7 @@
   function toast(t) { var e = $('toast'); e.textContent = t; e.classList.add('on'); setTimeout(function () { e.classList.remove('on'); }, 1800); }
   function mark() { dirty = true; $('save').textContent = 'Guardar •'; }
   function save() {
-    SR.overlay.set(S, { proyecto: S.proyecto, empresa: S.empresa, ciudad: S.ciudad, whatsapp: S.whatsapp, moneda: S.moneda, separacion: S.separacion, incremento: S.incremento, wompi: S.wompi, pisos: S.pisos, plantas: S.plantas, unidades: S.unidades, crm: S.crm, netlify: S.netlify });
+    SR.overlay.set(S, { proyecto: S.proyecto, empresa: S.empresa, ciudad: S.ciudad, whatsapp: S.whatsapp, moneda: S.moneda, separacion: S.separacion, incremento: S.incremento, wompi: S.wompi, pisos: S.pisos, plantas: S.plantas, unidades: S.unidades, crm: S.crm, netlify: S.netlify, recorrido: S.recorrido, cta: S.cta, correoConstructora: S.correoConstructora, firebase: S.firebase });
     dirty = false; $('save').textContent = 'Guardar'; toast('Guardado en este navegador'); resumen();
   }
   $('save').onclick = save;
@@ -155,7 +187,7 @@
     var s = e.target.dataset.s; if (!s) return;
     document.querySelectorAll('nav button').forEach(function (b) { b.classList.toggle('on', b.dataset.s === s); });
     document.querySelectorAll('section').forEach(function (x) { x.classList.toggle('on', x.id === 's-' + s); });
-    if (s === 'inventario') tabla(); if (s === 'resumen') resumen(); if (s === 'zonas' && !zn) zn = SR.zonas($('zonas'), S, { onChange: function () { mark(); } });
+    if (s === 'accesos') accesosUI(); if (s === 'inventario') tabla(); if (s === 'resumen') resumen(); if (s === 'zonas' && !zn) zn = SR.zonas($('zonas'), S, { onChange: function () { mark(); } });
   };
   var zn = null;
 
@@ -195,7 +227,7 @@
   $('tbl').onchange = function (e) {
     var f = e.target.dataset.f, id = e.target.closest('tr').dataset.id;
     var u = S.unidades.filter(function (x) { return x.id === id; })[0];
-    if (f === 'precio') { u.precio = +e.target.value; u.manual = true; } else u.estado = e.target.value;
+    if (f === 'precio') { u.precio = +e.target.value; u.manual = true; } else { u.estado = e.target.value; subir(u); }
     mark(); tabla();
   };
   $('recalc').onclick = function () { if (!confirm('¿Volver a calcular todos los precios desde el precio base y el incremento por piso?')) return; S.unidades.forEach(function (u) { delete u.manual; }); SR.syncUnits(S); mark(); tabla(); };
@@ -227,6 +259,20 @@
   bind('p-c', function () { return S.ciudad; }, function (v) { S.ciudad = v; });
   bind('p-w', function () { return S.whatsapp; }, function (v) { S.whatsapp = v.replace(/\D/g, ''); });
   bind('p-inc', function () { return S.incremento || 0; }, function (v) { S.incremento = +v; SR.syncUnits(S); });
+  function link(v) { v = v.trim(); return /^(https?:\/\/|\.{0,2}\/|[\w-]+\/|[\w-]+\.html)/i.test(v) ? v : (v ? 'https://' + v.replace(/^\w+:/, '') : ''); }
+  bind('p-co', function () { return S.correoConstructora; }, function (v) { S.correoConstructora = v.trim().toLowerCase(); });
+  bind('p-rec', function () { return (S.recorrido || {}).url; }, function (v) { S.recorrido = Object.assign({}, S.recorrido, { url: link(v) }); });
+  $('p-rec').onchange = function () { $('p-rec').value = (S.recorrido || {}).url || ''; };
+  S.cta = S.cta || { tipo: 'pagar' };
+  function ctaUI() {
+    document.querySelectorAll('.opt').forEach(function (o) { var on = o.dataset.cta === (S.cta.tipo || 'pagar'); o.classList.toggle('on', on); o.querySelector('input').checked = on; });
+    $('cta-sala').style.display = S.cta.tipo === 'sala' ? '' : 'none';
+  }
+  document.querySelectorAll('.opt input').forEach(function (i) { i.onchange = function () { S.cta.tipo = i.value; ctaUI(); mark(); }; });
+  bind('cta-t', function () { return S.cta.texto; }, function (v) { S.cta.texto = v.trim(); });
+  bind('cta-u', function () { return S.cta.url; }, function (v) { S.cta.url = link(v); });
+  $('cta-u').onchange = function () { $('cta-u').value = S.cta.url || ''; };
+  ctaUI();
   $('p-m').value = S.moneda || 'COP'; $('p-m').onchange = function () { S.moneda = $('p-m').value; mark(); };
 
   /* publicar */
@@ -271,6 +317,131 @@
       ntLog('✓ Publicado' + (url ? ': <a target="_blank" style="color:#c8a96a" href="' + esc(url) + '/">' + esc(url.replace(/^https?:\/\//, '')) + '</a>' : '') + '. Los compradores ya ven los cambios.');
     }).catch(function (e) { ntLog('⚠ ' + esc(e.message)); }).then(function () { b.disabled = false; });
   };
+
+  /* inventario en la nube (Firebase): master da accesos por correo; ventas marca reservas y ventas */
+  var NB = window.SRNube, user = null, rolU = null, cloud = null, seps = null, sepOff = null;
+  function puede() { return !!(cloud && user && (rolU === 'master' || rolU === 'ventas')); }
+  function chip() {
+    var c = $('nube-chip'); c.hidden = !NB.on(S);
+    c.classList.toggle('on', puede());
+    c.textContent = !cloud ? '☁ Nube sin activar' : puede() ? '☁ En vivo · ' + (rolU === 'master' ? 'master' : 'ventas') : user ? '☁ Sin acceso a la nube' : '☁ Entra para publicar estados';
+    c.onclick = function () { document.querySelector('nav [data-s=accesos]').click(); };
+  }
+  function subir(u) {
+    if (!cloud) return;
+    if (!puede()) return toast('Solo en este navegador: entra en Accesos para publicarlo');
+    NB.setEstado(S, u.id, u.estado, user).then(function () { toast('Apto ' + u.id + ' → ' + u.estado + ' · ya se ve en la sala'); })
+      .catch(function (e) { alert('No se pudo publicar el estado: ' + e.message); });
+  }
+  function irAccesos(e) { e.preventDefault(); document.querySelector('nav [data-s=accesos]').click(); }
+  function invUI() {
+    var w = $('nube-inv');
+    w.innerHTML = !NB.on(S) || puede() ? '' : '<div class="warn" style="margin-bottom:12px">' + (cloud
+      ? 'Los cambios de estado se quedan en este navegador. <a href="#" data-go style="color:#c8a96a">Entra con tu correo</a> para que lleguen a la sala publicada.'
+      : 'El inventario en la nube no está activo para esta sala. El master lo activa en <a href="#" data-go style="color:#c8a96a">Accesos</a>.') + '</div>';
+    var g = w.querySelector('[data-go]'); if (g) g.onclick = irAccesos;
+    var nuevas = (seps || []).filter(function (x) { return x.estado === 'nueva'; });
+    $('seps').innerHTML = !nuevas.length ? '' : '<div class="card" style="margin-bottom:14px"><span class="k">Wompi</span><h3>Separaciones por confirmar (' + nuevas.length + ')</h3>' +
+      '<p class="help">Pagos aprobados que dejaron los compradores. Revisa la transacción en tu panel de Wompi y confirma: el apto queda <b>reservado</b> en la sala.</p>' +
+      nuevas.map(function (x) {
+        return '<div class="row" data-tx="' + esc(x.id) + '"><b>Apto ' + esc(x.unidad) + '</b><span>' + esc(x.nombre || '') + '</span><span class="help">' + esc(x.celular || '') + ' · ' + esc(x.correo || '') + '</span>' +
+          '<span class="help">' + SR.money(x.monto, x.moneda || cur()) + ' · tx <code>' + esc(x.transaccion) + '</code></span><span class="sp"></span>' +
+          '<button class="sr-btn gold" data-ok>Confirmar y reservar</button><button class="sr-btn" data-no>Descartar</button></div>';
+      }).join('') + '</div>';
+    $('seps').querySelectorAll('[data-tx]').forEach(function (r) {
+      var tx = r.dataset.tx, x = seps.filter(function (s) { return s.id === tx; })[0];
+      r.querySelector('[data-ok]').onclick = function () {
+        var u = S.unidades.filter(function (y) { return y.id === x.unidad; })[0];
+        if (!u) return alert('El apto ' + x.unidad + ' no existe en este inventario.');
+        u.estado = 'reservado';
+        NB.setEstado(S, u.id, 'reservado', user).then(function () { return NB.revisar(S, tx, 'confirmada', user); })
+          .then(function () { toast('Apto ' + u.id + ' reservado'); mark(); tabla(); }).catch(function (e) { alert(e.message); });
+      };
+      r.querySelector('[data-no]').onclick = function () {
+        if (confirm('¿Descartar esta separación? El apto no cambia de estado.')) NB.revisar(S, tx, 'descartada', user).catch(function (e) { alert(e.message); });
+      };
+    });
+  }
+  function accesosUI() {
+    var el = $('acc'), host = location.host || 'este dominio';
+    if (!NB.on(S)) {
+      el.innerHTML = '<div class="card"><span class="k">Inventario en la nube</span><h3>Conecta Firebase</h3><p class="help">Pega la configuración web de tu proyecto de Firebase (Configuración del proyecto → Tus apps → Web). Es pública por diseño: lo que protege los datos son las reglas de <code>firestore.rules</code>.</p>' +
+        '<label>Configuración (el objeto firebaseConfig)<textarea id="fb-cfg" rows="6" placeholder="apiKey: &quot;…&quot;, authDomain: &quot;…&quot;, projectId: &quot;…&quot;, appId: &quot;…&quot;"></textarea></label><div class="bar"><button class="sr-btn gold" id="fb-save">Guardar y conectar</button><span class="help" id="fb-msg"></span></div></div>';
+      $('fb-save').onclick = function () {
+        var t = $('fb-cfg').value, c = {};
+        ['apiKey', 'authDomain', 'projectId', 'appId', 'storageBucket', 'messagingSenderId'].forEach(function (k) {
+          var m = t.match(new RegExp(k + '["\']?\\s*:\\s*["\']([^"\']+)')); if (m) c[k] = m[1];
+        });
+        if (!c.apiKey || !c.projectId) { $('fb-msg').textContent = 'Faltan apiKey o projectId.'; return; }
+        S.firebase = c; save(); location.reload();
+      };
+      return;
+    }
+    if (!user) {
+      el.innerHTML = '<div class="card"><span class="k">Acceso</span><h3>Entra al inventario</h3><p class="help">Con el correo al que el master le dio acceso.</p>' +
+        '<button class="sr-btn gold" id="lg-g" style="width:100%;margin:6px 0 14px">Entrar con Google</button>' +
+        '<label>Correo<input id="lg-e" type="email" autocomplete="email" value="' + esc(S.correoConstructora || '') + '"></label><label>Contraseña<input id="lg-p" type="password" autocomplete="current-password"></label>' +
+        '<div class="bar"><button class="sr-btn" id="lg-in">Entrar</button><button class="sr-btn" id="lg-new">Crear cuenta</button><button class="sr-btn" id="lg-rec" style="border:0">Olvidé la contraseña</button></div><p class="help" id="lg-msg"></p></div>';
+      var msg = function (t) { $('lg-msg').innerHTML = t; };
+      var fail = function (e) { msg('⚠ ' + esc(e.message)); };
+      $('lg-g').onclick = function () { NB.google(S).catch(fail); };
+      $('lg-in').onclick = function () { NB.entrar(S, $('lg-e').value, $('lg-p').value).catch(fail); };
+      $('lg-new').onclick = function () { NB.crear(S, $('lg-e').value, $('lg-p').value).then(function () { msg('Cuenta creada. Te enviamos un correo para verificarla.'); }).catch(fail); };
+      $('lg-rec').onclick = function () { NB.recordar(S, $('lg-e').value).then(function () { msg('Te enviamos el enlace para cambiar la contraseña.'); }).catch(fail); };
+      return;
+    }
+    var nombre = { master: 'Master', ventas: 'Ventas (constructora)' }[rolU] || 'Sin acceso a esta sala';
+    var html = '<div class="card"><span class="k">Sesión</span><h3>' + esc(user.email) + '</h3><p><span class="pill" style="background:' + (rolU ? 'rgba(63,182,122,.15);color:#9be0bb' : 'rgba(224,107,91,.15);color:#f0a99f') + '">' + nombre + '</span></p>';
+    if (!user.emailVerified) html += '<div class="warn">Tu correo no está verificado. Abre el enlace que te enviamos y luego toca <b>Ya lo verifiqué</b>.</div><div class="bar" style="margin-top:10px"><button class="sr-btn" id="vf-send">Reenviar correo</button><button class="sr-btn" id="vf-ok">Ya lo verifiqué</button></div>';
+    else if (rolU === 'ventas') html += '<p class="help">Puedes marcar reservas y ventas en <b>Inventario</b> y confirmar las separaciones pagadas. La sala publicada las muestra al instante.</p>';
+    else if (!rolU) html += '<p class="help">Este correo no tiene acceso a <b>' + esc(S.proyecto) + '</b>. Pídele al master que lo agregue.</p>';
+    html += '<button class="sr-btn" id="lg-out">Salir</button></div>';
+    if (rolU === 'master') {
+      html += '<div class="card"><span class="k">Master</span><h3>Inventario en la nube</h3>' + (cloud
+        ? '<p class="help">✓ Activo para la sala <code>' + esc(NB.id(S)) + '</code>. ' + Object.keys(cloud.estados || {}).length + ' unidades' + (cloud.por ? ' · último cambio de ' + esc(cloud.por) : '') + '.</p><button class="sr-btn" id="nb-push">Subir los estados de este navegador</button>'
+        : '<p class="help">Crea la sala <code>' + esc(NB.id(S)) + '</code> en Firestore con los estados actuales. Desde ahí la sala publicada los lee en vivo.</p><button class="sr-btn gold" id="nb-on">Activar inventario en la nube</button>') + '</div>';
+      html += '<div class="card"><span class="k">Master</span><h3>Accesos de la constructora</h3><p class="help">Cada correo puede entrar a este dashboard y marcar reservas y ventas.</p>' +
+        '<div class="bar"><input id="ac-e" type="email" placeholder="ventas@constructora.com" value="' + esc(S.correoConstructora || '') + '" style="flex:1;min-width:180px"><button class="sr-btn gold" id="ac-add"' + (cloud ? '' : ' disabled title="Primero activa el inventario"') + '>Dar acceso</button></div><div id="ac-list"><p class="help">Cargando…</p></div>' +
+        '<p class="help">Para entrar con Google desde <b>' + esc(host) + '</b>, agrega ese dominio en Firebase → Authentication → Settings → Authorized domains. Con correo y contraseña no hace falta.</p></div>';
+    }
+    el.innerHTML = html;
+    $('lg-out').onclick = function () { NB.salir(S); };
+    if ($('vf-send')) $('vf-send').onclick = function () { NB.verificar(S).then(function () { toast('Correo de verificación enviado'); }).catch(function (e) { alert(e.message); }); };
+    if ($('vf-ok')) $('vf-ok').onclick = function () { user.reload().then(function () { return user.getIdToken(true); }).then(function () { sesion(user); }); };
+    if ($('nb-on')) $('nb-on').onclick = function () { NB.activar(S, user).then(function () { toast('Inventario en la nube activo'); }).catch(function (e) { alert(e.message); }); };
+    if ($('nb-push')) $('nb-push').onclick = function () {
+      if (confirm('¿Reemplazar los estados de la nube por los de este navegador?')) NB.activar(S, user).then(function () { toast('Estados subidos'); }).catch(function (e) { alert(e.message); });
+    };
+    if (rolU === 'master') {
+      var lista = function () {
+        NB.accesos.lista(S).then(function (L) {
+          $('ac-list').innerHTML = L.length ? L.map(function (a) { return '<div class="row"><b>' + esc(a.email) + '</b><span class="help">' + esc(a.rol || 'ventas') + '</span><span class="sp"></span><button class="sr-btn" data-del="' + esc(a.email) + '">Quitar</button></div>'; }).join('') : '<p class="help">Nadie más tiene acceso todavía.</p>';
+          $('ac-list').querySelectorAll('[data-del]').forEach(function (b) {
+            b.onclick = function () { if (confirm('¿Quitar el acceso de ' + b.dataset.del + '?')) NB.accesos.quitar(S, b.dataset.del).then(lista).catch(function (e) { alert(e.message); }); };
+          });
+        }).catch(function (e) { $('ac-list').innerHTML = '<p class="help">⚠ ' + esc(e.message) + '</p>'; });
+      };
+      $('ac-add').onclick = function () { var v = $('ac-e').value.trim(); NB.accesos.agregar(S, v, user).then(function () { toast('Acceso dado a ' + v); lista(); }).catch(function (e) { alert(e.message); }); };
+      lista();
+    }
+  }
+  function sesion(u) {
+    user = u || null;
+    return NB.rol(S, user).then(function (r) {
+      rolU = r; chip(); invUI(); accesosUI();
+      if (sepOff) { sepOff(); sepOff = null; } seps = null;
+      if (puede()) NB.separaciones(S, function (L) { seps = L || []; invUI(); }).then(function (off) { sepOff = off; });
+    });
+  }
+  if (NB.on(S)) {
+    NB.watch(S, function (d) {
+      var antes = !!cloud; cloud = d;
+      if (d && NB.aplicar(S, d.estados)) { tabla(); resumen(); }
+      chip(); invUI(); if (antes !== !!d) sesion(user);
+    }).catch(function (e) { console.warn(e); });
+    NB.onUser(S, sesion).catch(function (e) { console.warn(e); });
+  }
+  chip();
 
   resumen(); pagos();
 })();

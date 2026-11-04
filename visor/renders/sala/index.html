@@ -13,6 +13,7 @@
 <div id="app" tabindex="-1"></div>
 <script src="datos.js"></script>
 <script src="showroom.js"></script>
+<script src="nube.js"></script>
 <script>
 (function () {
   var S = SR.overlay.apply(window.SALA || {});
@@ -26,7 +27,9 @@
     location.href = 'gracias.html?id=demo&ref=' + encodeURIComponent(ref);
     return Promise.resolve();
   };
-  SR.mount(document.getElementById('app'), S, opts);
+  var app = SR.mount(document.getElementById('app'), S, opts);
+  // inventario en la nube: lo que marque la constructora en el dashboard se ve aquí al instante
+  if (SRNube.on(S)) SRNube.watch(S, function (d) { if (d && SRNube.aplicar(S, d.estados)) app.refresh(); }).catch(function (e) { console.warn(e); });
 })();
 </script>
 </body>

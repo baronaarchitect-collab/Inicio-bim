@@ -15,6 +15,16 @@ window.LC_CONFIG = {
     firmaUrl: ''            // p. ej. https://tu-sitio.netlify.app/.netlify/functions/firma
   },
 
+  // Firebase para el inventario en la nube de cada sala (Firebase → Configuración del proyecto → Tus apps → Web).
+  // Puede ser el mismo proyecto del Estudio de Inicio-bim. Mientras apiKey empiece por "TU_", las salas
+  // guardan los estados solo en el navegador. Los correos master van en firestore.rules (no se publican).
+  firebase: {
+    apiKey: 'TU_API_KEY',
+    authDomain: 'TU_PROYECTO.firebaseapp.com',
+    projectId: 'TU_PROYECTO',
+    appId: 'TU_APP_ID'
+  },
+
   whatsapp: '573173371577',
   correo: 'proyectos@lifecity.com.co',
 

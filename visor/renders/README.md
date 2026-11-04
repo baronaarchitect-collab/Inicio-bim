@@ -36,3 +36,13 @@ Súbelo a GitHub Pages **dentro de `baronaarchitect-collab.github.io`** (p. ej. 
 al compartir dominio con el kit, el recorrido también queda disponible en `implementacion-lista.html`.
 
 Local: `python -m http.server 8765` y abre http://localhost:8765.
+
+## Recorrido 3D, llamado a la acción e inventario en la nube
+
+- **Recorrido 3D:** en el dashboard → Proyecto → *Link del recorrido 3D*. Con link, el render frontal muestra el botón **Ver recorrido en 3D** (y la ficha del apto también).
+- **Llamado a la acción:** dashboard → Proyecto → *Pagar la separación* (Wompi) o *Ir a la sala de ventas* (link propio, admite `{apto}`; vacío = agendar por WhatsApp).
+- **Inventario en la nube (Firebase), mismo esquema de accesos del visor BIM:**
+  - **Master:** correos fijos en `firestore.rules` (no se publican en las salas). Activa la sala y da accesos por correo desde dashboard → Accesos.
+  - **Ventas (constructora):** el correo que el master agrega. Entra al dashboard (Google o correo verificado) y marca reservas y ventas; la sala pública las ve en vivo.
+  - **Separaciones pagadas:** la página de gracias las deja en la nube y aparecen en Inventario para *Confirmar y reservar*.
+  - Configuración: pega la config web de Firebase en `config.js → firebase` (va a cada sala que se genere) o en dashboard → Accesos. Publica `firestore.rules` y agrega el dominio de cada sala en Authentication → Authorized domains si van a entrar con Google.
