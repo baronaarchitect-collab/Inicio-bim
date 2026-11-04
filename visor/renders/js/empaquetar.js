@@ -32,7 +32,12 @@
   function usedImages(S) {
     var out = [];
     if (S.fachada && S.fachada.img) out.push(S.fachada.img);
-    (S.plantas || []).forEach(function (p) { if (p.img) out.push(p.img); (p.aptos || []).forEach(function (a) { if (a.render) out.push(a.render); }); });
+    // también los modelos 3D subidos por apto o planta (img/modelo-….glb), que viajan en el ZIP
+    var local = function (v) { return v && !/^[a-z]+:/i.test(v); };
+    (S.plantas || []).forEach(function (p) {
+      if (p.img) out.push(p.img); if (local(p.recorrido)) out.push(p.recorrido);
+      (p.aptos || []).forEach(function (a) { if (a.render) out.push(a.render); if (local(a.recorrido)) out.push(a.recorrido); });
+    });
     return out.filter(function (v, i, a) { return a.indexOf(v) === i; });
   }
 

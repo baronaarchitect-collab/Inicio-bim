@@ -185,13 +185,15 @@
       var usan = S.pisos.slice().sort(function (a, b) { return a.nivel - b.nivel; });
       var html = '<div class="zn-box"><h4>Planta</h4><label>Nombre<input data-p="nombre" value="' + esc(pl.nombre) + '"></label>' +
         '<label>Pisos que usan esta planta</label><div class="chips">' + (usan.length ? usan.map(function (p) { return '<label><input type="checkbox" data-piso="' + p.id + '"' + (p.planta === pl.id ? ' checked' : '') + '>' + esc(p.nivel) + '</label>'; }).join('') : '<span class="help">Primero marca los pisos en el render.</span>') + '</div>' +
-        (usan.length ? '<div style="display:flex;gap:6px"><button class="b" data-act="all">Todos</button><button class="b" data-act="none">Ninguno</button></div>' : '') + '</div>';
+        (usan.length ? '<div style="display:flex;gap:6px"><button class="b" data-act="all">Todos</button><button class="b" data-act="none">Ninguno</button></div>' : '') +
+        campoRec('planta', pl.recorrido, 'Recorrido 3D de esta planta (todos sus aptos)') + '</div>';
       html += '<div class="zn-box"><h4>' + pl.aptos.length + ' apartamentos</h4>';
       if (sel && pl.aptos.indexOf(sel) >= 0) {
         html += '<div class="row"><label>Número<input type="number" min="1" data-a="n" value="' + esc(sel.n) + '"></label><label>Área m²<input type="number" data-a="area" value="' + esc(sel.area) + '"></label></div>' +
           '<div class="row"><label>Alcobas<input type="number" data-a="alcobas" value="' + esc(sel.alcobas) + '"></label><label>Baños<input type="number" data-a="banos" value="' + esc(sel.banos) + '"></label></div>' +
           '<label>Precio base (piso más bajo)<input type="number" step="1000000" data-a="precio" value="' + esc(sel.precio) + '"></label>' +
           '<label>Render interior (opcional)</label><div style="display:flex;gap:6px;align-items:center">' + (sel.render ? '<img src="' + esc(img(sel.render)) + '" style="width:70px;height:44px;object-fit:cover;border-radius:6px">' : '') + '<button class="b" data-act="render">' + (sel.render ? 'Cambiar' : 'Subir render') + '</button>' + (sel.render ? '<button class="b red" data-act="norender">Quitar</button>' : '') + '</div>' +
+          campoRec('apto', sel.recorrido, 'Recorrido 3D de este apto') +
           '<button class="b red" data-act="del">Borrar este apartamento</button>';
       } else html += '<p class="help">' + (pl.img ? 'Dibuja cada apartamento sobre la planta (arrastra o haz clics). Luego selecciónalo para poner área, alcobas, baños y precio.' : 'Sube la imagen de la planta.') + '</p>';
       html += '<div style="display:flex;gap:6px;flex-wrap:wrap">' + (pl.img ? '<button class="b" data-act="img">Cambiar imagen</button>' : '') + '<button class="b red" data-act="drop">Eliminar planta</button></div></div>';
@@ -206,6 +208,20 @@
       act('del', function () { ed.remove(sel); });
       act('render', function () { pick('image/*', function (f) { up(f, 'render-' + pl.id + '-' + sel.n).then(function (p) { sel.render = p; changed(); sidePlanta(pl); }).catch(alert); }); });
       act('norender', function () { sel.render = ''; changed(); sidePlanta(pl); });
+      side.querySelectorAll('[data-rec]').forEach(function (i) {
+        var obj = i.dataset.rec === 'planta' ? pl : sel;
+        i.onchange = function () { obj.recorrido = i.value.trim(); changed(); sidePlanta(pl); };
+      });
+      side.querySelectorAll('[data-recup]').forEach(function (b) {
+        var esPl = b.dataset.recup === 'planta';
+        b.onclick = function () {
+          pick('.glb,.gltf,.ifc,.obj,.fbx', function (f) {
+            if (f.size > 100 * 1024 * 1024) { alert('El modelo pasa de 100 MB. Exporta solo el apartamento o una versión GLB más liviana.'); return; }
+            up(f, 'modelo-' + pl.id + (esPl ? '' : '-' + sel.n)).then(function (path) { (esPl ? pl : sel).recorrido = path; changed(); sidePlanta(pl); }).catch(alert);
+          });
+        };
+      });
+      side.querySelectorAll('[data-recx]').forEach(function (b) { b.onclick = function () { (b.dataset.recx === 'planta' ? pl : sel).recorrido = ''; changed(); sidePlanta(pl); }; });
       act('img', function () { pick('image/*', function (f) { up(f, 'planta-' + pl.id).then(function (p) { pl.img = p; changed(); ed.src(img(p)); }).catch(alert); }); });
       act('drop', function () {
         if (!confirm('¿Eliminar la planta "' + pl.nombre + '" y sus apartamentos?')) return;
@@ -213,6 +229,14 @@
         S.pisos.forEach(function (p) { if (p.planta === pl.id) p.planta = ''; });
         tab = 'fachada'; sel = null; changed(); render();
       });
+    }
+    /* recorrido 3D: link de una página publicada o de un modelo (.glb/.ifc), o el modelo subido aquí */
+    function campoRec(cual, v, titulo) {
+      var esModelo = /\.(ifc|glb|gltf|obj|fbx)(\?|#|$)/i.test(v || '');
+      return '<label style="margin-top:8px">' + titulo + '<input data-rec="' + cual + '" placeholder="https://… (página o modelo .glb/.ifc)" value="' + esc(v || '') + '"></label>' +
+        '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' + (o.upload ? '<button class="b" data-recup="' + cual + '">Subir modelo 3D</button>' : '') +
+        (v ? '<button class="b red" data-recx="' + cual + '">Quitar</button>' : '') + '</div>' +
+        '<p class="help">' + (v ? (esModelo ? 'Se abre en el visor 3D con chat y cita.' : 'Se abre esa página encima de la sala.') : (cual === 'apto' ? 'Vacío = usa el de la planta' + (cual === 'apto' ? ' o la app 3D del edificio' : '') + '.' : 'Vacío = la app 3D del edificio (con el IFC si lo tiene).')) + '</p>';
     }
     function act(name, fn) { var b = side.querySelector('[data-act=' + name + ']'); if (b) b.onclick = fn; }
 

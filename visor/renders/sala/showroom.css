@@ -115,3 +115,18 @@ a.sr-btn { color: var(--tx); text-decoration: none; display: inline-block; }
   .sr-legend { left: 12px; bottom: 12px; gap: 9px; }
   .sr-hint { display: none; }
 }
+/* recorrido 3D encima de la sala */
+.sr-modal { position: absolute; inset: 0; z-index: 20; background: #0d0e0cf2; display: flex; flex-direction: column; gap: 10px; padding: 12px; }
+.sr-modal-h { display: flex; align-items: center; gap: 10px; color: var(--tx); font-size: 14px; flex-wrap: wrap; }
+.sr-modal-h b { font: 500 22px var(--serif); }
+.sr-modal iframe { flex: 1; width: 100%; border: 0; border-radius: 14px; background: #141512; }
+.sr-3d { border-color: var(--gold); color: var(--gold); }
+/* cita en la sala de ventas */
+.sr-o { display: flex; align-items: center; gap: 10px; color: var(--tx2); font-size: 12px; margin: 14px 0 8px; }
+.sr-o::before, .sr-o::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.sr-cita { display: grid; gap: 10px; margin-top: 10px; }
+.sr-cita[hidden] { display: none; }
+.sr-two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sr-sheet select { font: inherit; color: var(--tx); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.sr-ok { background: rgba(63,182,122,.12); border: 1px solid rgba(63,182,122,.4); border-radius: 10px; padding: 12px 14px; font-size: 13.5px; line-height: 1.5; }
+@media (max-width: 560px) { .sr-modal { padding: 8px; } .sr-modal-h b { font-size: 18px; flex-basis: 100%; order: -1; } }

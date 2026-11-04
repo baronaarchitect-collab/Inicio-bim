@@ -391,7 +391,8 @@
   function preview() {
     SR.syncUnits(S);
     var P = JSON.parse(JSON.stringify(S));
-    SR.mount($('preview'), P, { img: LCPack.img, onReserve: function () { return Promise.reject(new Error('Vista previa: en tu sitio publicado aquí el comprador pasa a Wompi a pagar la separación.')); } });
+    // vista previa: el 3D abre este proyecto del asistente; la cita no se envía a ningún CRM
+    SR.mount($('preview'), P, { img: LCPack.img, salaLocal: S.id, onCita: function () { return Promise.resolve(); }, onReserve: function () { return Promise.reject(new Error('Vista previa: en tu sitio publicado aquí el comprador pasa a Wompi a pagar la separación.')); } });
   }
 
   // acceso master: el correo master de las reglas de Firebase publica sin pasar por Wompi

@@ -9,6 +9,13 @@ en vez de pedir el modelo 3D, pide **render frontal y plantas**, y arma el flujo
 (área, alcobas, baños, render, valor) → separa con el 10 % en Wompi → `gracias.html` verifica la transacción
 y marca el apto como reservado.
 
+**3D y cita:** el render frontal tiene **Ver el edificio en 3D** y la ficha de cada apto **Entrar al apartamento en 3D**: abren la
+[app 3D de la sala](https://github.com/baronaarchitect-collab/sala-3d-apartamentos) encima de la sala, entrando directo a ese apto.
+En *Zonas* cada planta y cada apto pueden llevar su **recorrido 3D**: el link de un modelo (`.glb`, `.ifc`…), un modelo subido
+(viaja en el ZIP como `img/modelo-….glb`) o el link de una página publicada (Matterport, Kuula, un recorrido propio).
+Sin recorrido propio entra en automático (el apto del IFC del edificio, si la app 3D lo tiene). Además de separar, la ficha ofrece
+**Agendar cita en la sala de ventas** (día, hora, presencial o videollamada): va al CRM de Life City si está activo y se confirma por WhatsApp.
+
 **Constructora** (lo que tú vendes, raíz):
 1. `index.html`: demo en vivo + asistente (datos → render y pisos → plantas y aptos → precios → Wompi de la constructora → vista previa) → paga la implementación con **tu** Wompi.
 2. `gracias.html`: consulta la transacción en Wompi; si está APROBADA y el monto coincide, **descarga sola el ZIP**.
