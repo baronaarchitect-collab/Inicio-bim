@@ -84,7 +84,7 @@
     clear: function (S) { try { localStorage.removeItem(overlay.key(S)); } catch (e) {} },
     apply: function (S) {
       var o = overlay.get(S); if (!o) return S;
-      ['proyecto', 'empresa', 'ciudad', 'whatsapp', 'moneda', 'separacion', 'incremento', 'wompi', 'pisos', 'plantas', 'unidades', 'crm']
+      ['proyecto', 'empresa', 'ciudad', 'whatsapp', 'moneda', 'separacion', 'incremento', 'wompi', 'pisos', 'plantas', 'unidades', 'crm', 'netlify']
         .forEach(function (k) { if (o[k] != null) S[k] = o[k]; });
       return S;
     },

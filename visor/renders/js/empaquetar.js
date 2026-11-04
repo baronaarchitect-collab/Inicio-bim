@@ -8,14 +8,15 @@
  *   LCPack.exportFile(id) → Promise<{blob, filename}> · importFile(file) → Promise<id>   (.sala.zip con JSON + imágenes)
  *   LCPack.thumb(id)                   → Promise<url|null>  render frontal para la lista
  *   LCPack.upload(file, nombre)        → Promise<path>  guarda una imagen del proyecto abierto
- *   LCPack.build(S, {recorridoZip})    → Promise<{blob, filename}>  ZIP listo para publicar
+ *   LCPack.build(S, {recorridoZip, flat}) → Promise<{blob, filename}>  ZIP listo para publicar
+ *                                        (flat: solo el sitio, con los archivos en la raíz, para subirlo a Netlify)
  *   LCPack.pedidoKit(S)                → pedido en el formato del kit 3D (LCKit) para unir el recorrido
  * Requiere sala/showroom.js (SR) y JSZip.
  */
 (function () {
   'use strict';
   var IDX = 'lc:renders:proyectos', CUR = 'lc:renders:actual', PRE = 'lc:renders:p:', OLD = 'lc:renders:borrador', BASE = 'sala/';
-  var TEMPLATES = ['index.html', 'gracias.html', 'dashboard.html', 'showroom.js', 'showroom.css', 'editor.js', 'zonas.js'];
+  var TEMPLATES = ['index.html', 'gracias.html', 'dashboard.html', 'showroom.js', 'showroom.css', 'editor.js', 'zonas.js', 'netlify.js'];
   var urls = {}, cur = null;
 
   function ext(f) { var m = /\.([a-z0-9]+)$/i.exec(f.name || ''); return (m ? m[1] : (f.type || '').split('/')[1] || 'jpg').toLowerCase().replace('jpeg', 'jpg').replace('svg+xml', 'svg'); }
@@ -169,7 +170,8 @@
       '  sitio/netlify/        Función opcional para firmar los pagos en el servidor',
       '',
       'PUBLICAR (5 minutos)',
-      '  1. Entra a app.netlify.com/drop y arrastra la carpeta "sitio".',
+      '  1. Con un clic: en la página de gracias usa "Publicar en Netlify" (pide tu token de Netlify).',
+      '     A mano: entra a app.netlify.com/drop y arrastra la carpeta "sitio".',
       '     (o súbela a GitHub Pages / al FTP de tu web)',
       '  2. Abre TU-SITIO/dashboard.html → Pagos Wompi y pega tu llave pública y secreto de integridad.',
       '  3. En comercios.wompi.co no hace falta configurar nada más: la URL de redirección',
@@ -188,7 +190,8 @@
   function build(S, o) {
     o = o || {};
     if (!window.JSZip) return Promise.reject(new Error('JSZip no cargó'));
-    var zip = new JSZip(), name = SR.slug(S.proyecto) + '-sala-renders', root = zip.folder(name), site = root.folder('sitio');
+    var zip = new JSZip(), name = SR.slug(S.proyecto) + '-sala-renders';
+    var root = o.flat ? null : zip.folder(name), site = o.flat ? zip : root.folder('sitio');
     var D = JSON.parse(JSON.stringify(S));
     delete D.demo;
     D.unidades = SR.syncUnits(D).unidades;
@@ -210,11 +213,11 @@
       });
       return Promise.all(copies);
     }));
-    site.file('netlify/functions/firma.js', FIRMA);
+    if (!o.flat) site.file('netlify/functions/firma.js', FIRMA);
     site.file('datos.js', '/* Datos de ' + D.proyecto + ' · Life City */\nwindow.SALA = ' + JSON.stringify(D, null, 1) + ';\n');
-    root.file('ABRIR-DASHBOARD.html', '<!doctype html><meta charset="utf-8"><title>Dashboard · ' + SR.esc(D.proyecto) + '</title><meta http-equiv="refresh" content="0;url=sitio/dashboard.html"><p style="font:16px sans-serif">Abriendo el dashboard… si no abre, <a href="sitio/dashboard.html">toca aquí</a>.</p>');
-    root.file('ABRIR-SALA.html', '<!doctype html><meta charset="utf-8"><title>Sala · ' + SR.esc(D.proyecto) + '</title><meta http-equiv="refresh" content="0;url=sitio/index.html"><p style="font:16px sans-serif"><a href="sitio/index.html">Abrir la sala de ventas</a></p>');
-    root.file('LEEME.txt', leeme(D, name));
+    if (root) root.file('ABRIR-DASHBOARD.html', '<!doctype html><meta charset="utf-8"><title>Dashboard · ' + SR.esc(D.proyecto) + '</title><meta http-equiv="refresh" content="0;url=sitio/dashboard.html"><p style="font:16px sans-serif">Abriendo el dashboard… si no abre, <a href="sitio/dashboard.html">toca aquí</a>.</p>');
+    if (root) root.file('ABRIR-SALA.html', '<!doctype html><meta charset="utf-8"><title>Sala · ' + SR.esc(D.proyecto) + '</title><meta http-equiv="refresh" content="0;url=sitio/index.html"><p style="font:16px sans-serif"><a href="sitio/index.html">Abrir la sala de ventas</a></p>');
+    if (root) root.file('LEEME.txt', leeme(D, name));
     return Promise.all(jobs).then(function () { return zip.generateAsync({ type: 'blob' }); }).then(function (blob) { return { blob: blob, filename: name + '.zip' }; });
   }
 

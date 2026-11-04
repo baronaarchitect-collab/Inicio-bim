@@ -109,6 +109,17 @@
   </section>
 
   <section id="s-publicar">
+    <div class="card" style="margin-bottom:14px">
+      <span class="k">Con un clic</span><h3>Publicar los cambios en Netlify</h3>
+      <p class="help">Sube tus precios, estados y zonas al sitio publicado sin tocar archivos. Solo se reemplaza <code>datos.js</code>; renders, plantas y recorrido se quedan como están.</p>
+      <div class="grid" style="margin-top:10px">
+        <label>Token personal de Netlify<input id="nt-tk" type="password" autocomplete="off" placeholder="nfp_…"></label>
+        <label>Sitio<select id="nt-site"><option value="">Conecta tu cuenta</option></select></label>
+      </div>
+      <p class="help">Créalo en <a id="nt-link" target="_blank" rel="noopener" style="color:#c8a96a">Netlify → User settings → Applications → Personal access tokens</a>. Solo se envía a api.netlify.com.</p>
+      <label style="display:flex;gap:8px;align-items:center;color:#f1ede4"><input type="checkbox" id="nt-rem"> Recordar el token en este navegador</label>
+      <div class="bar"><button class="sr-btn" id="nt-con">Conectar</button><button class="sr-btn gold" id="nt-go" disabled>Publicar cambios</button><span class="help" id="nt-log"></span></div>
+    </div>
     <div class="grid">
       <div class="card"><span class="k">1</span><h3>Descarga datos.js</h3><p class="help">Los cambios se guardan en este navegador. Para que los vean los compradores, descarga <code>datos.js</code> y reemplázalo en tu hosting (GitHub Pages, Netlify o el FTP de tu web).</p><button class="sr-btn gold" id="dl">Descargar datos.js</button></div>
       <div class="card"><span class="k">2</span><h3>Respaldo</h3><p class="help">Exporta o importa todo el proyecto como JSON.</p><div class="bar"><button class="sr-btn" id="exp">Exportar JSON</button><button class="sr-btn" id="imp">Importar JSON</button></div></div>
@@ -121,6 +132,7 @@
 <script src="showroom.js"></script>
 <script src="editor.js"></script>
 <script src="zonas.js"></script>
+<script src="netlify.js"></script>
 <script>
 (function () {
   var $ = function (id) { return document.getElementById(id); }, esc = SR.esc;
@@ -132,7 +144,7 @@
   function toast(t) { var e = $('toast'); e.textContent = t; e.classList.add('on'); setTimeout(function () { e.classList.remove('on'); }, 1800); }
   function mark() { dirty = true; $('save').textContent = 'Guardar •'; }
   function save() {
-    SR.overlay.set(S, { proyecto: S.proyecto, empresa: S.empresa, ciudad: S.ciudad, whatsapp: S.whatsapp, moneda: S.moneda, separacion: S.separacion, incremento: S.incremento, wompi: S.wompi, pisos: S.pisos, plantas: S.plantas, unidades: S.unidades, crm: S.crm });
+    SR.overlay.set(S, { proyecto: S.proyecto, empresa: S.empresa, ciudad: S.ciudad, whatsapp: S.whatsapp, moneda: S.moneda, separacion: S.separacion, incremento: S.incremento, wompi: S.wompi, pisos: S.pisos, plantas: S.plantas, unidades: S.unidades, crm: S.crm, netlify: S.netlify });
     dirty = false; $('save').textContent = 'Guardar'; toast('Guardado en este navegador'); resumen();
   }
   $('save').onclick = save;
@@ -228,6 +240,37 @@
     i.click();
   };
   $('reset').onclick = function () { if (confirm('¿Descartar los cambios guardados en este navegador?')) { SR.overlay.clear(S); dirty = false; location.reload(); } };
+
+  /* publicar en Netlify: solo cambia datos.js */
+  var N = window.SRNetlify;
+  $('nt-link').href = N.TOKEN_URL;
+  $('nt-tk').value = N.token(); $('nt-rem').checked = !!N.token();
+  if (S.netlify && S.netlify.site_id) { $('nt-site').innerHTML = '<option value="' + esc(S.netlify.site_id) + '">' + esc(S.netlify.name || S.netlify.site_id) + '</option>'; $('nt-go').disabled = false; }
+  function ntLog(t) { $('nt-log').innerHTML = t; }
+  $('nt-rem').onchange = function () { N.token($('nt-tk').value.trim(), $('nt-rem').checked); };
+  $('nt-con').onclick = function () {
+    var tk = $('nt-tk').value.trim(); if (!tk) return ntLog('Pega tu token de Netlify.');
+    ntLog('Conectando…');
+    N.sites(tk).then(function (list) {
+      // preselecciona el sitio de este proyecto, o el que sirve esta misma página
+      var mine = (S.netlify && S.netlify.site_id) || ((list.filter(function (s) { return (s.ssl_url || s.url || '').indexOf(location.host) >= 0; })[0] || {}).id);
+      $('nt-site').innerHTML = list.map(function (s) { return '<option value="' + esc(s.id) + '"' + (s.id === mine ? ' selected' : '') + '>' + esc(s.name) + '</option>'; }).join('') || '<option value="">No tienes sitios</option>';
+      $('nt-go').disabled = !list.length; N.token(tk, $('nt-rem').checked);
+      ntLog('✓ ' + list.length + ' sitios en tu cuenta');
+    }).catch(function (e) { ntLog('⚠ ' + esc(e.message)); });
+  };
+  $('nt-go').onclick = function () {
+    var tk = $('nt-tk').value.trim(), id = $('nt-site').value, b = this;
+    if (!tk) return ntLog('Pega tu token de Netlify.');
+    if (!id) return ntLog('Elige el sitio.');
+    var opt = $('nt-site').selectedOptions[0];
+    S.netlify = Object.assign({}, S.netlify, { site_id: id, name: opt ? opt.textContent : '' });
+    save(); b.disabled = true;
+    N.deployFiles(tk, id, { '/datos.js': datos() }, ntLog).then(function (d) {
+      var url = (d.ssl_url || d.url || '').replace(/\/$/, '');
+      ntLog('✓ Publicado' + (url ? ': <a target="_blank" style="color:#c8a96a" href="' + esc(url) + '/">' + esc(url.replace(/^https?:\/\//, '')) + '</a>' : '') + '. Los compradores ya ven los cambios.');
+    }).catch(function (e) { ntLog('⚠ ' + esc(e.message)); }).then(function () { b.disabled = false; });
+  };
 
   resumen(); pagos();
 })();

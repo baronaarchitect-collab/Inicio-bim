@@ -58,7 +58,12 @@
   .presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
   .presets button { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; padding: 0; background: none; cursor: pointer; }
   .presets button i { width: 14px; height: 24px; display: block; }
-  @media (max-width: 920px) { .hero, .rec { grid-template-columns: 1fr; } }
+  .nt { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 22px; align-items: start; }
+  .side label { display: grid; gap: 4px; font-size: 12.5px; color: var(--tx2); }
+  .side label.chk { display: flex; gap: 8px; align-items: center; color: var(--tx); font-size: 13.5px; }
+  .side label.chk input { width: auto; }
+  #nt-log a { font-weight: 600; }
+  @media (max-width: 920px) { .hero, .rec, .nt { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -71,6 +76,31 @@
   </div>
   <div class="card" id="pago"><div class="spin"></div></div>
 </div>
+
+<section id="netlify" hidden><div class="w">
+  <span class="k">Publica tu sala</span>
+  <h2>Súbela a <em>Netlify</em> con un clic</h2>
+  <p class="muted" style="max-width:760px">Sin descargar ni arrastrar carpetas: conecta tu cuenta de Netlify (es gratis), elige el nombre y tu sala queda en línea con su dashboard. Si luego creas el recorrido 3D, vuelve a publicar para sumarlo.</p>
+  <div class="nt">
+    <div class="card side">
+      <h4>1 · Conecta tu cuenta</h4>
+      <label>Token personal de Netlify<input id="nt-tk" type="password" autocomplete="off" placeholder="nfp_…"></label>
+      <p class="help">Créalo en <a id="nt-link" target="_blank" rel="noopener">Netlify → User settings → Applications → Personal access tokens</a> (ponle fecha de vencimiento). Solo se envía a api.netlify.com.</p>
+      <label class="chk"><input type="checkbox" id="nt-rem"> Recordar el token en este navegador</label>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn sm" id="nt-con">Conectar</button><span class="help" id="nt-who"></span></div>
+    </div>
+    <div class="card side">
+      <h4>2 · Elige el sitio</h4>
+      <label class="chk"><input type="radio" name="nt-m" value="new" checked> Crear un sitio nuevo</label>
+      <label>Nombre del sitio<input id="nt-name" maxlength="60"></label>
+      <p class="help">Quedará en <b id="nt-prev"></b></p>
+      <label class="chk"><input type="radio" name="nt-m" value="old"> Actualizar un sitio que ya tengo</label>
+      <select id="nt-site" disabled><option value="">Conecta tu cuenta primero</option></select>
+      <button class="btn gold" id="nt-go" disabled>Publicar en Netlify</button>
+      <p class="help" id="nt-log"></p>
+    </div>
+  </div>
+</div></section>
 
 <section id="recorrido" hidden><div class="w">
   <span class="k">Paso final · Recorrido por el apartamento</span>
@@ -109,6 +139,7 @@
 <script src="config.js"></script>
 <script>document.write('<script src="' + window.LC_CONFIG.kit + '"><\/script>');</script>
 <script src="sala/showroom.js"></script>
+<script src="sala/netlify.js"></script>
 <script src="js/empaquetar.js"></script>
 <script>
 (function () {
@@ -157,13 +188,63 @@
     txCard(t, 'ok', demo ? 'Pago simulado' : 'Pago aprobado');
     $('acts').innerHTML = '<button class="btn gold" id="dl">Descargar instalador</button><a class="btn" href="#recorrido">Crear el recorrido 3D ↓</a>';
     $('dl').onclick = function () { pack().then(LCPack.download); };
-    $('recorrido').hidden = false;
-    recorrido();
+    $('acts').insertAdjacentHTML('beforeend', '<a class="btn" href="#netlify">Publicar en Netlify ↓</a>');
+    $('recorrido').hidden = false; $('netlify').hidden = false;
+    recorrido(); netlify();
     if (!again) pack().then(LCPack.download).catch(function (e) { $('sub').innerHTML += '<br><span class="bad">No se pudo armar el ZIP: ' + esc(e.message) + '</span>'; });
   }
   function pack() {
     $('dl') && ($('dl').disabled = true);
     return LCPack.build(S, { recorridoZip: lastZip }).then(function (r) { $('dl') && ($('dl').disabled = false); return r; });
+  }
+
+  /* ---------------- publicar en Netlify ---------------- */
+  function netlify() {
+    var N = window.SRNetlify, list = [], prev = S.netlify || null;
+    $('nt-link').href = N.TOKEN_URL;
+    $('nt-tk').value = N.token(); $('nt-rem').checked = !!N.token();
+    $('nt-name').value = (prev && prev.name) || N.siteName(SR.slug(S.proyecto) + '-sala');
+    function preview() { $('nt-prev').textContent = 'https://' + (N.siteName($('nt-name').value) || '…') + '.netlify.app'; }
+    $('nt-name').oninput = preview; preview();
+    function mode() { return document.querySelector('[name=nt-m]:checked').value; }
+    document.querySelectorAll('[name=nt-m]').forEach(function (r) { r.onchange = function () { $('nt-name').disabled = mode() !== 'new'; $('nt-site').disabled = mode() !== 'old' || !list.length; }; });
+    function log(t) { $('nt-log').innerHTML = t; }
+
+    $('nt-con').onclick = function () {
+      var tk = $('nt-tk').value.trim(); if (!tk) return log('Pega tu token de Netlify.');
+      $('nt-con').disabled = true; $('nt-who').textContent = 'Conectando…';
+      Promise.all([N.me(tk), N.sites(tk)]).then(function (r) {
+        list = r[1] || [];
+        $('nt-who').innerHTML = '✓ ' + esc(r[0].full_name || r[0].email || 'Cuenta conectada') + ' · ' + list.length + ' sitios';
+        $('nt-site').innerHTML = list.length ? list.map(function (s) { return '<option value="' + esc(s.id) + '"' + (prev && prev.site_id === s.id ? ' selected' : '') + '>' + esc(s.name) + ' · ' + esc((s.ssl_url || s.url || '').replace(/^https?:\/\//, '')) + '</option>'; }).join('') : '<option value="">No tienes sitios todavía</option>';
+        if (prev && list.some(function (s) { return s.id === prev.site_id; })) document.querySelector('[name=nt-m][value=old]').checked = true;
+        document.querySelector('[name=nt-m]:checked').onchange();
+        $('nt-go').disabled = false;
+        N.token(tk, $('nt-rem').checked);
+      }).catch(function (e) { $('nt-who').textContent = ''; log('⚠ ' + esc(e.message)); })
+        .then(function () { $('nt-con').disabled = false; });
+    };
+    $('nt-rem').onchange = function () { N.token($('nt-tk').value.trim(), $('nt-rem').checked); };
+
+    $('nt-go').onclick = function () {
+      var tk = $('nt-tk').value.trim(), b = this; b.disabled = true;
+      var site = mode() === 'old'
+        ? Promise.resolve(list.filter(function (s) { return s.id === $('nt-site').value; })[0] || Promise.reject(new Error('Elige un sitio')))
+        : (log('Creando el sitio…'), N.createSite(tk, N.siteName($('nt-name').value)));
+      site.then(function (s) {
+        // el sitio queda guardado en el proyecto y en datos.js, así el dashboard publicado sabe a dónde subir sus cambios
+        S.netlify = { site_id: s.id, name: s.name, url: s.ssl_url || s.url, admin: s.admin_url };
+        LCPack.saveDraft(S);
+        log('Armando la sala…');
+        return LCPack.build(S, { recorridoZip: lastZip, flat: true }).then(function (r) { return N.deployZip(tk, s.id, r.blob, log); }).then(function (d) { return [s, d]; });
+      }).then(function (x) {
+        var url = (x[1].ssl_url || S.netlify.url).replace(/\/$/, '');
+        log('✓ Tu sala está en línea: <a target="_blank" href="' + esc(url) + '/">' + esc(url.replace(/^https?:\/\//, '')) + '</a> · <a target="_blank" href="' + esc(url) + '/dashboard.html">dashboard</a>' +
+          (S.netlify.admin ? ' · <a target="_blank" href="' + esc(S.netlify.admin) + '">administrar en Netlify</a>' : '') +
+          '<br>Para un dominio propio (ej. ventas.tuproyecto.com) usa “Domain management” en Netlify.');
+        prev = S.netlify; b.disabled = false;
+      }).catch(function (e) { log('⚠ ' + esc(e.message)); b.disabled = false; });
+    };
   }
 
   /* ---------------- recorrido 3D ---------------- */
