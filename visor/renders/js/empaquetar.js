@@ -1,46 +1,125 @@
 /*!
  * Life City · Empaquetador de la sala de ventas con renders
- *   LCPack.loadDraft()                 → Promise<{S, urls}>  borrador del asistente (localStorage + IndexedDB)
- *   LCPack.saveDraft(S)                → guarda el borrador
- *   LCPack.upload(file, nombre)        → Promise<path>  guarda una imagen del asistente
+ *   Proyectos guardados (en este navegador: datos en localStorage, imágenes en IndexedDB por proyecto)
+ *   LCPack.loadDraft([id])             → Promise<{S, urls}>  abre un proyecto (por defecto el último abierto)
+ *   LCPack.saveDraft(S)                → guarda el proyecto y actualiza la lista
+ *   LCPack.list()                      → [{id, proyecto, empresa, pisos, unidades, actualizado}] (más reciente primero)
+ *   LCPack.create() · duplicate(id) · remove(id)
+ *   LCPack.exportFile(id) → Promise<{blob, filename}> · importFile(file) → Promise<id>   (.sala.zip con JSON + imágenes)
+ *   LCPack.thumb(id)                   → Promise<url|null>  render frontal para la lista
+ *   LCPack.upload(file, nombre)        → Promise<path>  guarda una imagen del proyecto abierto
  *   LCPack.build(S, {recorridoZip})    → Promise<{blob, filename}>  ZIP listo para publicar
  *   LCPack.pedidoKit(S)                → pedido en el formato del kit 3D (LCKit) para unir el recorrido
  * Requiere sala/showroom.js (SR) y JSZip.
  */
 (function () {
   'use strict';
-  var DRAFT = 'lc:renders:borrador', BASE = 'sala/';
+  var IDX = 'lc:renders:proyectos', CUR = 'lc:renders:actual', PRE = 'lc:renders:p:', OLD = 'lc:renders:borrador', BASE = 'sala/';
   var TEMPLATES = ['index.html', 'gracias.html', 'dashboard.html', 'showroom.js', 'showroom.css', 'editor.js', 'zonas.js'];
-  var urls = {};
+  var urls = {}, cur = null;
 
   function ext(f) { var m = /\.([a-z0-9]+)$/i.exec(f.name || ''); return (m ? m[1] : (f.type || '').split('/')[1] || 'jpg').toLowerCase().replace('jpeg', 'jpg').replace('svg+xml', 'svg'); }
-
-  function loadDraft() {
-    var S = null;
-    try { S = JSON.parse(localStorage.getItem(DRAFT) || 'null'); } catch (e) {}
-    S = S || { id: 'sala-' + Date.now().toString(36), proyecto: '', empresa: '', ciudad: '', whatsapp: '', moneda: 'COP', separacion: 10, incremento: 0.5, wompi: {}, fachada: {}, pisos: [], plantas: [], unidades: [] };
-    return SR.db.keys().then(function (keys) {
-      return Promise.all(keys.filter(function (k) { return /^img\//.test(k); }).map(function (k) {
-        return SR.db.get(k).then(function (b) { if (b) urls[k] = URL.createObjectURL(b); });
-      }));
-    }).catch(function () {}).then(function () { return { S: S, urls: urls }; });
+  function ls(k, v) {
+    try { if (v === undefined) return JSON.parse(localStorage.getItem(k) || 'null'); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); return true; }
+    catch (e) { return v === undefined ? null : false; }
   }
-  function saveDraft(S) { try { localStorage.setItem(DRAFT, JSON.stringify(S)); return true; } catch (e) { return false; } }
-  function upload(file, nombre) {
-    var path = 'img/' + SR.slug(nombre) + '.' + ext(file);
-    return SR.db.put(path, file).then(function () {
-      if (urls[path]) URL.revokeObjectURL(urls[path]);
-      urls[path] = URL.createObjectURL(file);
-      return path;
-    });
-  }
-  function img(p) { return urls[p] || p; }
+  function newId() { return 'sala-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
+  function blank() { return { id: newId(), proyecto: '', empresa: '', ciudad: '', whatsapp: '', moneda: 'COP', separacion: 10, incremento: 0.5, wompi: {}, fachada: {}, pisos: [], plantas: [], unidades: [] }; }
+  /* las imágenes de cada proyecto viven en IndexedDB como "<id>:img/…" */
+  function key(id, path) { return id + ':' + path; }
+  function getImg(id, path) { return SR.db.get(key(id, path)).then(function (b) { return b || SR.db.get(path); }); } // sin prefijo = versión anterior
   function usedImages(S) {
     var out = [];
     if (S.fachada && S.fachada.img) out.push(S.fachada.img);
     (S.plantas || []).forEach(function (p) { if (p.img) out.push(p.img); (p.aptos || []).forEach(function (a) { if (a.render) out.push(a.render); }); });
     return out.filter(function (v, i, a) { return a.indexOf(v) === i; });
   }
+
+  /* ---------- lista de proyectos ---------- */
+  function list() { return (ls(IDX) || []).sort(function (a, b) { return b.actualizado - a.actualizado; }); }
+  function touch(S) {
+    var L = (ls(IDX) || []).filter(function (x) { return x.id !== S.id; });
+    L.push({ id: S.id, proyecto: S.proyecto || 'Proyecto sin nombre', empresa: S.empresa || '', pisos: (S.pisos || []).length, unidades: (S.unidades || []).length, actualizado: Date.now() });
+    ls(IDX, L);
+  }
+  function migrate() {
+    var old = ls(OLD); if (!old) return;
+    old.id = old.id || newId();
+    if (!ls(PRE + old.id)) { ls(PRE + old.id, old); touch(old); if (!ls(CUR)) ls(CUR, old.id); }
+    ls(OLD, null);
+  }
+
+  function loadDraft(id) {
+    migrate();
+    id = id || ls(CUR) || (list()[0] || {}).id;
+    var S = id ? ls(PRE + id) : null;
+    if (!S) S = blank();
+    cur = S.id; ls(CUR, cur);
+    Object.keys(urls).forEach(function (k) { URL.revokeObjectURL(urls[k]); delete urls[k]; });
+    return Promise.all(usedImages(S).map(function (p) {
+      return getImg(cur, p).then(function (b) { if (b) urls[p] = URL.createObjectURL(b); });
+    })).catch(function () {}).then(function () { return { S: S, urls: urls }; });
+  }
+  function saveDraft(S) {
+    S.id = S.id || cur || newId(); cur = S.id;
+    var ok = ls(PRE + S.id, S);
+    if (ok) { touch(S); ls(CUR, S.id); }
+    return ok;
+  }
+  function create() { var S = blank(); ls(PRE + S.id, S); touch(S); ls(CUR, S.id); return S.id; }
+  function copyImgs(from, to, S) {
+    return Promise.all(usedImages(S).map(function (p) { return getImg(from, p).then(function (b) { if (b) return SR.db.put(key(to, p), b); }); }));
+  }
+  function duplicate(id) {
+    var S = ls(PRE + id); if (!S) return Promise.reject(new Error('No existe ese proyecto'));
+    var D = JSON.parse(JSON.stringify(S)); D.id = newId(); D.proyecto = (S.proyecto || 'Proyecto') + ' (copia)';
+    return copyImgs(id, D.id, S).then(function () { ls(PRE + D.id, D); touch(D); return D.id; });
+  }
+  function remove(id) {
+    var S = ls(PRE + id) || {};
+    ls(PRE + id, null); ls(IDX, (ls(IDX) || []).filter(function (x) { return x.id !== id; }));
+    if (ls(CUR) === id) ls(CUR, null);
+    return SR.db.keys().then(function (ks) {
+      return Promise.all(ks.filter(function (k) { return k.indexOf(id + ':') === 0; }).map(function (k) { return SR.db.del(k); }));
+    }).then(function () { return S; });
+  }
+  function thumb(id) {
+    var S = ls(PRE + id); if (!S || !S.fachada || !S.fachada.img) return Promise.resolve(null);
+    return getImg(id, S.fachada.img).then(function (b) { return b ? URL.createObjectURL(b) : null; }).catch(function () { return null; });
+  }
+
+  /* ---------- archivo .sala.zip para pasar proyectos entre equipos ---------- */
+  function exportFile(id) {
+    var S = ls(PRE + id); if (!S) return Promise.reject(new Error('No existe ese proyecto'));
+    var zip = new JSZip();
+    zip.file('proyecto.json', JSON.stringify({ formato: 'lc-sala-renders', version: 1, exportado: new Date().toISOString(), proyecto: S }, null, 1));
+    return Promise.all(usedImages(S).map(function (p) { return getImg(id, p).then(function (b) { if (b) zip.file(p, b); }); }))
+      .then(function () { return zip.generateAsync({ type: 'blob' }); })
+      .then(function (blob) { return { blob: blob, filename: SR.slug(S.proyecto) + '.sala.zip' }; });
+  }
+  function importFile(file) {
+    return JSZip.loadAsync(file).then(function (zip) {
+      var j = zip.file('proyecto.json'); if (!j) throw new Error('Ese archivo no es un proyecto de sala de renders');
+      return j.async('string').then(function (t) {
+        var d = JSON.parse(t), S = d.proyecto;
+        if (d.formato !== 'lc-sala-renders' || !S) throw new Error('Ese archivo no es un proyecto de sala de renders');
+        if (!S.id || ls(PRE + S.id)) S.id = newId(); // nunca pisa un proyecto que ya está guardado
+        return Promise.all(usedImages(S).map(function (p) {
+          var f = zip.file(p); return f ? f.async('blob').then(function (b) { return SR.db.put(key(S.id, p), b); }) : null;
+        })).then(function () { ls(PRE + S.id, S); touch(S); return S.id; });
+      });
+    });
+  }
+
+  function upload(file, nombre) {
+    var path = 'img/' + SR.slug(nombre) + '.' + ext(file);
+    return SR.db.put(key(cur, path), file).then(function () {
+      if (urls[path]) URL.revokeObjectURL(urls[path]);
+      urls[path] = URL.createObjectURL(file);
+      return path;
+    });
+  }
+  function img(p) { return urls[p] || p; }
 
   /* pedido en el formato de LCKit (precios en millones, pisos numéricos) */
   function pedidoKit(S) {
@@ -117,7 +196,7 @@
       return fetch(BASE + f).then(function (r) { if (!r.ok) throw new Error('Falta ' + f); return r.text(); }).then(function (t) { site.file(f, t); });
     });
     usedImages(S).forEach(function (p) {
-      jobs.push(SR.db.get(p).then(function (b) {
+      jobs.push(getImg(S.id || cur, p).then(function (b) {
         if (b) return site.file(p, b);
         return fetch(BASE + p).then(function (r) { return r.ok ? r.blob() : null; }).then(function (x) { if (x) site.file(p, x); });
       }));
@@ -145,5 +224,10 @@
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 60000);
   }
 
-  window.LCPack = { loadDraft: loadDraft, saveDraft: saveDraft, upload: upload, img: img, build: build, download: download, pedidoKit: pedidoKit, DRAFT: DRAFT };
+  window.LCPack = {
+    loadDraft: loadDraft, saveDraft: saveDraft, list: list, create: create, duplicate: duplicate, remove: remove,
+    exportFile: exportFile, importFile: importFile, thumb: thumb,
+    upload: upload, img: img, build: build, download: download, pedidoKit: pedidoKit,
+    current: function () { return cur; }
+  };
 })();

@@ -74,6 +74,24 @@
   .price .big { font: 500 46px/1 'Cormorant Garamond', serif; margin: 8px 0 4px; }
   .note { font-size: 13px; color: var(--tx2); }
   .warn { border-left: 3px solid #e0a93b; background: rgba(224,169,59,.08); border-radius: 6px; padding: 10px 14px; font-size: 13.5px; color: #e9d3a6; margin: 12px 0 0; }
+  .btn.sm { padding: 8px 14px; font-size: 13px; }
+  .proj { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 28px; padding: 14px 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg2); }
+  .proj-name { display: grid; gap: 2px; min-width: 0; }
+  .proj-name b { font: 500 24px/1.1 'Cormorant Garamond', serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .proj-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+  .lib { margin-top: 10px; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg2); }
+  .lib-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+  .pj { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--bg); display: grid; }
+  .pj.on { border-color: var(--gold); }
+  .pj .th { aspect-ratio: 16/9; background: #1c1e19 center/cover no-repeat; display: grid; place-items: center; color: var(--tx2); font-size: 12px; }
+  .pj .in { padding: 10px 12px 12px; display: grid; gap: 4px; }
+  .pj b { font: 500 20px/1.15 'Cormorant Garamond', serif; }
+  .pj .meta { font-size: 12px; color: var(--tx2); }
+  .pj .acts { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .pj .acts button { border: 1px solid var(--line); background: none; color: var(--tx); border-radius: 7px; padding: 5px 10px; font: 12px Inter; cursor: pointer; }
+  .pj .acts button:hover { border-color: var(--gold); }
+  .pj .acts .del { color: #e06b5b; }
   footer { border-top: 1px solid var(--line); padding: 30px 0 50px; color: var(--tx2); font-size: 14px; }
   @media (max-width: 860px) { .flow { grid-template-columns: 1fr 1fr; } .buy { grid-template-columns: 1fr; } .demo { height: 72vh; } .top nav .btn:not(.gold) { display: none; } }
   @media (max-width: 520px) { .flow { grid-template-columns: 1fr; } .panel { padding: 18px 14px; } }
@@ -113,6 +131,19 @@
 <section id="implementar"><div class="w">
   <span class="k">Hagamos esta implementación con tu proyecto</span>
   <h2>Sube tus renders y plantas, <em>mira tu sala antes de pagar</em></h2>
+  <div class="proj">
+    <div class="proj-name"><span class="k">Proyecto abierto</span><b id="pj-name">Proyecto nuevo</b><span class="note" id="pj-saved"></span></div>
+    <div class="proj-acts">
+      <button class="btn sm gold" id="pj-save">Guardar</button>
+      <button class="btn sm" id="pj-lib">Mis proyectos</button>
+      <button class="btn sm" id="pj-new">+ Nuevo proyecto</button>
+    </div>
+  </div>
+  <div class="lib" id="lib" hidden>
+    <div class="lib-head"><span class="note">Los proyectos se guardan en este navegador. Para pasarlos a otro equipo o hacer un respaldo, usa <b>Exportar</b> e <b>Importar</b>.</span>
+      <button class="btn sm" id="pj-imp">Importar archivo</button></div>
+    <div class="lib-grid" id="lib-grid"></div>
+  </div>
   <div class="steps" id="steps"></div>
 
   <!-- 1 · proyecto -->
@@ -207,7 +238,62 @@
 
   LCPack.loadDraft().then(function (d) { S = d.S; init(); });
 
-  function save() { SR.syncUnits(S); LCPack.saveDraft(S); }
+  function save(manual) {
+    SR.syncUnits(S);
+    var ok = LCPack.saveDraft(S);
+    $('pj-name').textContent = S.proyecto || 'Proyecto sin nombre';
+    $('pj-saved').textContent = ok ? (manual ? '✓ Guardado' : 'Guardado automático') + ' · ' + new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+      : '⚠ No se pudo guardar: el navegador no tiene espacio o está en modo privado.';
+    if (!$('lib').hidden) biblioteca();
+    return ok;
+  }
+
+  /* ---------- mis proyectos ---------- */
+  function keep() { if (S.proyecto || S.pisos.length || (S.fachada && S.fachada.img)) save(); } // no guarda proyectos vacíos
+  function abrir(id) { LCPack.loadDraft(id).then(function () { location.hash = 'implementar'; location.reload(); }); }
+  function biblioteca() {
+    var L = LCPack.list(), cur = LCPack.current();
+    $('pj-lib').textContent = 'Mis proyectos (' + L.length + ')';
+    $('lib-grid').innerHTML = L.length ? L.map(function (p) {
+      return '<div class="pj' + (p.id === cur ? ' on' : '') + '" data-id="' + esc(p.id) + '"><div class="th">sin render</div><div class="in"><b>' + esc(p.proyecto) + '</b>' +
+        '<span class="meta">' + esc(p.empresa || '—') + ' · ' + p.pisos + ' pisos · ' + p.unidades + ' unidades</span>' +
+        '<span class="meta">Guardado ' + new Date(p.actualizado).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' }) + '</span>' +
+        '<div class="acts">' + (p.id === cur ? '<button disabled>Abierto</button>' : '<button data-a="open">Abrir</button>') +
+        '<button data-a="dup">Duplicar</button><button data-a="exp">Exportar</button><button data-a="del" class="del">Eliminar</button></div></div></div>';
+    }).join('') : '<p class="note">Aún no hay proyectos guardados.</p>';
+    L.forEach(function (p) {
+      LCPack.thumb(p.id).then(function (u) {
+        var t = $('lib-grid').querySelector('[data-id="' + p.id + '"] .th');
+        if (u && t) { t.style.backgroundImage = 'url("' + u + '")'; t.textContent = ''; }
+      });
+    });
+  }
+  function initLib() {
+    $('pj-name').textContent = S.proyecto || 'Proyecto nuevo';
+    biblioteca();
+    $('pj-save').onclick = function () { save(true); };
+    $('pj-lib').onclick = function () { $('lib').hidden = !$('lib').hidden; if (!$('lib').hidden) biblioteca(); };
+    $('pj-new').onclick = function () { keep(); abrir(LCPack.create()); };
+    $('pj-imp').onclick = function () {
+      var i = document.createElement('input'); i.type = 'file'; i.accept = '.zip,application/zip';
+      i.onchange = function () {
+        if (!i.files[0]) return;
+        LCPack.importFile(i.files[0]).then(function (id) { if (confirm('Proyecto importado. ¿Abrirlo ahora?')) { keep(); abrir(id); } else biblioteca(); })
+          .catch(function (e) { alert(e.message); });
+      };
+      i.click();
+    };
+    $('lib-grid').onclick = function (e) {
+      var a = e.target.dataset.a, card = e.target.closest('.pj'); if (!a || !card) return;
+      var id = card.dataset.id, name = card.querySelector('b').textContent;
+      if (a === 'open') { keep(); abrir(id); }
+      if (a === 'dup') LCPack.duplicate(id).then(biblioteca);
+      if (a === 'exp') LCPack.exportFile(id).then(LCPack.download).catch(function (x) { alert(x.message); });
+      if (a === 'del' && confirm('¿Eliminar "' + name + '" de este navegador? Si no lo exportaste, no se podrá recuperar.')) {
+        LCPack.remove(id).then(function () { if (id === LCPack.current()) abrir((LCPack.list()[0] || {}).id || LCPack.create()); else biblioteca(); });
+      }
+    };
+  }
 
   function init() {
     var f = $('f-proy');
@@ -229,7 +315,7 @@
       if (LOCAL) { $('pay').textContent = 'Simular pago (modo prueba)'; $('pay-msg').textContent = 'La llave de Wompi de Life City aún no está en config.js: en local este botón simula un pago aprobado.'; }
       else { $('pay').textContent = 'Solicitar por WhatsApp'; $('pay-msg').textContent = 'Te enviamos el link de pago y activamos tu descarga.'; }
     }
-    drawSteps(); show(0);
+    initLib(); drawSteps(); show(0);
   }
 
   function drawSteps() {
@@ -300,7 +386,7 @@
     save();
     var ref = 'IMP-' + SR.slug(S.proyecto).toUpperCase().slice(0, 24) + '-' + Date.now().toString(36).toUpperCase();
     var cents = Math.round(C.precio * 100);
-    var pend = { ref: ref, cents: cents, moneda: C.moneda, t: Date.now() };
+    var pend = { ref: ref, cents: cents, moneda: C.moneda, pid: S.id, t: Date.now() };
     if (!SR.wompi.configured(C.wompi) && !LOCAL) {
       window.open('https://wa.me/' + C.whatsapp + '?text=' + encodeURIComponent('Hola Life City, quiero la sala de ventas con renders para ' + S.proyecto + ' (' + S.empresa + '): ' + S.unidades.length + ' unidades en ' + S.pisos.length + ' pisos. ¿Me envían el link de pago?'), '_blank');
       return;

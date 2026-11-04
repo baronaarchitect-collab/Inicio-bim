@@ -15,6 +15,10 @@ y marca el apto como reservado.
    Ahí mismo crea el **recorrido**: sube el modelo 3D, lo pinta con la paleta de colores, escribe las decisiones
    arquitectónicas y lo **une con el kit 3D** (`LCKit` de Inicio-bim): el ZIP final trae `sitio/recorrido/`.
 
+**Mis proyectos:** el asistente guarda varios proyectos en el navegador (datos en localStorage, imágenes en
+IndexedDB con el prefijo `<id>:`). Desde el panel se abren, duplican, eliminan y se exportan/importan como
+`.sala.zip` (`proyecto.json` + `img/`) para pasarlos a otro equipo. Cada pago queda atado a su proyecto.
+
 ## Archivos
 
 | Archivo | Qué es |
