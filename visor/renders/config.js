@@ -16,13 +16,13 @@ window.LC_CONFIG = {
   },
 
   // Firebase para el inventario en la nube de cada sala (Firebase → Configuración del proyecto → Tus apps → Web).
-  // Puede ser el mismo proyecto del Estudio de Inicio-bim. Mientras apiKey empiece por "TU_", las salas
+  // Proyecto: lifecity-salas-renders (console.firebase.google.com). Si apiKey empieza por "TU_", las salas
   // guardan los estados solo en el navegador. Los correos master van en firestore.rules (no se publican).
   firebase: {
-    apiKey: 'TU_API_KEY',
-    authDomain: 'TU_PROYECTO.firebaseapp.com',
-    projectId: 'TU_PROYECTO',
-    appId: 'TU_APP_ID'
+    apiKey: 'AIzaSyAQ6TDFxdQnBFCDQdmprTVqanWN4W1MYME',
+    authDomain: 'lifecity-salas-renders.firebaseapp.com',
+    projectId: 'lifecity-salas-renders',
+    appId: '1:978926852350:web:d4e9edc54aa2938a546daf'
   },
 
   whatsapp: '573173371577',
